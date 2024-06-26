@@ -35,6 +35,7 @@
 #include "gmnreader.h"
 #include "ARTypes.h"
 #include "guidorational.h"
+#include "AROthers.h"
 
 namespace guido 
 {

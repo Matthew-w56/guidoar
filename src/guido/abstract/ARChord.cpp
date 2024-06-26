@@ -140,17 +140,17 @@ class chordnotesvisitor : public visitor<SARNote>
 				 chordnotesvisitor() : fBrowser(this) {}
 		virtual ~chordnotesvisitor() {}
 		
-		vector<const SARNote>	notes (const ARChord* chord);
+		vector<SARNote>	notes (const ARChord* chord);
 	
 	protected:		 
 		virtual void visitStart( SARNote& elt )		{ fNotes.push_back (elt); }
 
-		vector<const SARNote>	fNotes;
+		vector<SARNote>	fNotes;
 		tree_browser<guidoelement> fBrowser;
 };
 
 //______________________________________________________________________________
-vector<const SARNote> chordnotesvisitor::notes (const ARChord* chord)
+vector<SARNote> chordnotesvisitor::notes (const ARChord* chord)
 {
 	fNotes.clear();
 	fBrowser.browse (*(guidoelement*)chord);
@@ -161,7 +161,7 @@ vector<const SARNote> chordnotesvisitor::notes (const ARChord* chord)
 //
 //   ARChord
 //______________________________________________________________________________
-std::vector<const SARNote> ARChord::notes() const {
+std::vector<SARNote> ARChord::notes() {
 	chordnotesvisitor nv;
 	return nv.notes(this);
 }

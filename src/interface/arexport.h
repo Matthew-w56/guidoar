@@ -21,6 +21,8 @@
 
  */
 
+// #define GUIDOAR_EXPORTS
+
 #ifdef WIN32
 
 # ifdef GUIDOAR_EXPORTS
@@ -33,7 +35,7 @@
 
 #else
 
-# ifdef GUIDOAR_EXPORTS
+# ifdef GUIDOAR_EXPORTSGUIDOAR_EXPORTS
 #  define gar_export		 __attribute__ ((visibility("default")))
 # else
 #  define gar_export		

@@ -33,6 +33,7 @@
 #include <stdio.h>
 #include "guidorational.h"
 #include "arexport.h"
+#include "testInterface.h"
 
 namespace guido 
 {

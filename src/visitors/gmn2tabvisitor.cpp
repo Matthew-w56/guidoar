@@ -776,7 +776,7 @@ void gmn2tabvisitor::visitEnd ( SARChord& chord )
 
 	if (fInTie) fInTie++;
 	rational dur = chord->duration();
-	std::vector<const SARNote> vnotes = chord->notes();
+	std::vector<SARNote> vnotes = chord->notes();
 	int dots = vnotes.size() ? vnotes[0]->GetDots() : 0;
 
 	if (fChordNotes.size()) {

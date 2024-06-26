@@ -57,7 +57,7 @@ class gar_export ARChord : public guidoelement
 		// gives the list of the chord midi pitch in ascending ordered
 		virtual void	midiPitch(int& currentoctave, std::vector<int>& pitches) const;
 
-		std::vector<const SARNote> notes() const;
+		std::vector<SARNote> notes();
 
 		/// a chord duration is the max of its notes durations
 		/// it returns 0 when all notes have implicit duration
