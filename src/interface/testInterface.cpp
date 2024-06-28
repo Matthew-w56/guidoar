@@ -24,7 +24,7 @@ static SARMusic read (const char* buff)
 }
 
 static char* getPersistentPointer(std::string stringObj) {
-	int len = stringObj.size();
+	int len = int(stringObj.size());
 	char* textOutput = (char*)malloc(len + 2); // +2 to allow me to pad end
 	memcpy(textOutput, stringObj.c_str(), len);
 	textOutput[len] = 0;
@@ -36,10 +36,9 @@ static char* getPersistentPointer(std::string stringObj) {
  *  Reads in the file referenced as a Guido score, deletes the note in question,
  *  and then returns the text data for the new score.
  */
-char* deleteNoteFrom(const char* scoreData, int num, int den, unsigned int voice) {
+char* deleteEvent(const char* scoreData, int num, int den, unsigned int voice, int midiPitch) {
 	// Read the score.  If that fails, return error code as a string.
 	SARMusic score = read(scoreData);
-	//Sguidoelement score = read(scoreData);
 	if (!score) return "Error reading score!  (No score operation performed)";
 	
 	// Initialize the objects needed with raw parameter data
@@ -47,13 +46,7 @@ char* deleteNoteFrom(const char* scoreData, int num, int den, unsigned int voice
 	rational time = rational(num, den);
 	
 	// Run the delete routine
-	visitor.deleteEvent(score, time, voice-1, -1, -1);
-	
-	printf("Done delete event!  About to print to stream\n");
-	std::cout.flush();
-	
-	score->print(std::cout);
-	std::cout.flush();
+	visitor.deleteEvent(score, time, voice-1, midiPitch);
 	
 	// Print the score
 	ostringstream oss;

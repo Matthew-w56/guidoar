@@ -46,12 +46,12 @@ class gar_export elementoperationvisitor :
 		         elementoperationvisitor() {  }
 		virtual ~elementoperationvisitor() {  }
 		
-		bool 	deleteEvent (const Sguidoelement& score, const rational& time, unsigned int voiceIndex=0, int pitch=-1, int octave=-1);
+		bool 	deleteEvent (const Sguidoelement& score, const rational& time, unsigned int voiceIndex=0, int midiPitch=-1);
 		bool	insertNote	(const Sguidoelement& score, const rational& time, SARNote& elt, unsigned int voiceIndex=0);
 		
 		
 		bool done();
-		bool wouldBeDone(SARNote& elt);
+		bool done(SARNote& elt);
 		void init();
 		
 		virtual void visitStart ( SARVoice& elt );
@@ -69,8 +69,7 @@ class gar_export elementoperationvisitor :
 		SARChord		fCurrentChordRef;
 		bool			fDone;
 		OpIntent		fOpIntent;
-		int				fPitchRef;
-		int				fOctaveRef;
+		int				fMidiPitch;
 		// Used to return results from a browse to an edit method
 		SARVoice		fResultVoice;
 		SARChord		fResultChord;

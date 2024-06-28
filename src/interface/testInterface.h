@@ -9,7 +9,7 @@ extern "C" {
 
 #include "arexport.h"
 
-gar_export char* deleteNoteFrom(const char* scoreData, int num, int den, unsigned int voice);
+gar_export char* deleteEvent(const char* scoreData, int num, int den, unsigned int voice, int midiPitch);
 
 #ifdef __cplusplus
 }
