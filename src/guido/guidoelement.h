@@ -31,6 +31,7 @@
 #include "visitable.h"
 #include "ctree.h"
 #include "gar_smartpointer.h"
+#include "guidorational.h"
 
 namespace guido 
 {
@@ -141,6 +142,8 @@ class gar_export guidoelement : public ctree<guidoelement>, public visitable
 		long				getAttributeLongValue	(unsigned int index, long defaultvalue) const;
 		int					getAttributeIntValue	(unsigned int index, int defaultvalue) const;
 		float				getAttributeFloatValue	(unsigned int index, float defaultvalue) const;
+		
+		virtual rational	totalduration(rational& current, int& currentdots) const { return rational(0, 1); }
 
 		//________________________________________________________________________
 		virtual bool operator ==(const Sguidoelement& i) const;

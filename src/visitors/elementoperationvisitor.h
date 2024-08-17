@@ -34,20 +34,39 @@ namespace guido
 */
 
 enum OpIntent {
-	InsertNote, DeleteEvent
+	InsertNote, DeleteEvent, AddMeasure, SetElementProperties, SetGroupProperties
 };
+
+struct NewNoteInfo {
+	int voice,
+		midiPitch,
+		durStartNum,
+		durStartDen,
+		durLengthNum,
+		durLengthDen,
+		dots = 0,
+		insistedAccidental = 0;
+};
+
+enum OpResult { none, success, needsMeasureAdded, failure, noActionTaken };
 
 
 class gar_export elementoperationvisitor :
-	public durationvisitor
+	public durationvisitor,
+	public visitor<Sguidotag>
 {
 	
 	public:
 		         elementoperationvisitor() {  }
 		virtual ~elementoperationvisitor() {  }
 		
-		bool 	deleteEvent (const Sguidoelement& score, const rational& time, unsigned int voiceIndex=0, int midiPitch=-1);
-		bool	insertNote	(const Sguidoelement& score, const rational& time, SARNote& elt, unsigned int voiceIndex=0);
+		OpResult 	deleteEvent   (const Sguidoelement& score, const rational& time, unsigned int voiceIndex, int midiPitch=-1);
+		OpResult	insertNote	  (const Sguidoelement& score, NewNoteInfo noteInfo);
+		void		appendMeasure (const Sguidoelement& score);
+		OpResult	setDurationAndDots(const Sguidoelement& score, const rational& time, int voice, rational newDur, int newDots);
+		OpResult	setAccidental(const Sguidoelement& score, const rational& time, int voice, int midiPitch, int newAccidental, int* resultPitch);
+		OpResult 	setNotePitch(const Sguidoelement& score, const rational& time, int voice, int oldPitch, int newPitch);
+		OpResult 	shiftNotePitch(const Sguidoelement& score, const rational& time, int voice, int midiPitch, int pitchShiftDirection, int* resultPitch);
 		
 		
 		bool done();
@@ -57,19 +76,29 @@ class gar_export elementoperationvisitor :
 		virtual void visitStart ( SARVoice& elt );
 		virtual void visitStart ( SARNote& elt );
 		virtual void visitStart ( SARChord& elt );
+		virtual void visitStart ( Sguidotag& tag );
 
 		virtual void visitEnd   ( SARVoice& elt );
 		virtual void visitEnd   ( SARChord& elt );
 		
 	protected:
+	
+		void 		handleEqualDurationsNoteInsertion(SARNote& noteToAdd);
+		OpResult 	cutScoreAndInsert(SARVoice& voice, Sguidoelement existing, Sguidoelement newEl);
+	
+			// These represent what we are looking for
 		rational		fTargetDate;
 		unsigned int	fTargetVoice;
-		unsigned int	fCurrentVoice;
+		int				fMidiPitch;
+			// These represent the current state of the browsing
+		unsigned int	fCurrentVoiceNum;
 		SARVoice		fCurrentVoiceRef;
 		SARChord		fCurrentChordRef;
+		int				fCurrentKeySignature = 0;
+		std::string		fCurrentMeter = "";
 		bool			fDone;
+			// These represent data that comes from the public methods
 		OpIntent		fOpIntent;
-		int				fMidiPitch;
 		// Used to return results from a browse to an edit method
 		SARVoice		fResultVoice;
 		SARChord		fResultChord;

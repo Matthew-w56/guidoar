@@ -24,6 +24,7 @@
 
 #include <string>
 #include <vector>
+#include "iostream"
 
 #include "arexport.h"
 
@@ -107,6 +108,34 @@ class gar_export rational {
         double	toDouble() const;
         float	toFloat() const;
         int		toInt() const;
+		
+		static std::vector<rational> getBaseRationals(rational input, bool useDot = false, std::vector<int>* dotsOutput = nullptr) {
+			// If they want dots, they must supply somewhere for them to go
+			if (useDot && dotsOutput == nullptr) {
+				printf("Cannot output dots with nullptr!  Pass in dotsOutput (3rd parameter)!\n");
+				std::cout.flush();
+				return std::vector<rational>();
+			}
+			std::vector<rational> output = std::vector<rational>();
+			rational zeroR = rational(0, 1);
+			int currDen = 1;
+			while (input > zeroR) {
+				if (useDot) {
+					while (input >= rational(3, (currDen * 2))) {
+						input -= rational(3, (currDen * 2));
+						output.push_back( rational(1, currDen) );
+						dotsOutput->push_back(1);
+					}
+				}
+				while (input >= rational(1, currDen)) {
+					input -= rational(1, currDen);
+					output.push_back( rational(1, currDen) );
+					if (dotsOutput != nullptr) dotsOutput->push_back(0);
+				}
+				currDen *= 2;
+			}
+			return output;
+		}
 };
 
 typedef std::vector<rational> rationals;

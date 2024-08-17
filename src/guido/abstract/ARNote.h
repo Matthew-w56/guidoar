@@ -64,7 +64,7 @@ class gar_export ARNote : public guidoelement
         virtual void			acceptOut (basevisitor& v);
 
 		void SetOctave		(int oct)	{ fOctave = oct; }
-		void SetAccidental	(int acc)	{ fAccidental= acc; }
+		void SetAccidental	(int acc)	{ fAccidental = acc; }
 		void SetDots		(int dots)	{ fDots = dots; }
 
 		//! normalizes pitch names to 'a b c d...' notation, alter is to catch 'cis, dis...' notation
@@ -82,7 +82,7 @@ class gar_export ARNote : public guidoelement
 		
 		// duration operations
 		const rational&	duration() const		{ return fDuration; }
-		rational		totalduration(rational& current, int& currentdots)	const;
+		virtual rational	totalduration(rational& current, int& currentdots)	const;
 		ARNote& operator =  (const rational&);
 		ARNote& operator += (const rational&);
 		ARNote& operator -= (const rational&);

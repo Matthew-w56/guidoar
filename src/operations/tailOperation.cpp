@@ -118,7 +118,8 @@ void tailOperation::visitStart ( SARChord& elt )
 	if (fCopy) clonevisitor::visitStart (elt);
 	else {						// check if startpoint is reached
 		rational remain = fStartPoint - fDuration.currentVoiceDate();
-		rational dur = elt->totalduration(fDuration.currentNoteDuration(), fDuration.currentDots());
+		int dots = fDuration.currentDots();
+		rational dur = elt->totalduration(fDuration.currentNoteDuration(), dots);
 		if (remain < dur) {
 			flushTags();
 			push(makeOpenedTie(), true);					// push the tag to the current copy

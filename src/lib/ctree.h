@@ -118,7 +118,7 @@ template <typename T> class treeIterator : public std::iterator<std::input_itera
 		//________________________________________________________________________
 		treeIterator& insert(const T& value) {
 			T parent = getParent();
-			fCurrentIterator = parent->elements().insert(fCurrentIterator, value);
+			fCurrentIterator =  parent->elements().insert(fCurrentIterator, value);
 			if (fStack.size()) fStack.pop();
 			fStack.push( std::make_pair(fCurrentIterator+1, parent));
 			return *this;

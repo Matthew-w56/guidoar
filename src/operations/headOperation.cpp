@@ -116,7 +116,8 @@ void headOperation::visitStart ( SARVoice& elt )
 void headOperation::visitStart ( SARChord& elt )
 {
 	rational remain = fCutPoint - fDuration.currentVoiceDate();
-	rational dur = elt->totalduration(fDuration.currentNoteDuration(), fDuration.currentDots());
+	int dots = fDuration.currentDots();
+	rational dur = elt->totalduration(fDuration.currentNoteDuration(), dots);
 	if (remain.getNumerator() > 0) {
 		if (remain < dur) {
 			push(makeOpenedTie(), true);		// push an opened tie tag to the current copy

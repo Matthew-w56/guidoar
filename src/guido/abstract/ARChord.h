@@ -58,13 +58,16 @@ class gar_export ARChord : public guidoelement
 		virtual void	midiPitch(int& currentoctave, std::vector<int>& pitches) const;
 
 		std::vector<SARNote> notes();
+		
+		int				GetDots();
+		void			SetDots(int dots);
 
 		/// a chord duration is the max of its notes durations
 		/// it returns 0 when all notes have implicit duration
 		/// or -max if one of the notes has an implicit duration
 		rational		duration() const;
 		/// gives the chord duration within the given context
-		rational		totalduration(rational current, int currentdots) const;
+		virtual rational	totalduration(rational& current, int& currentdots)	const;
 
 		ARChord& operator =  (const rational& d);		///< force all notes duration to d
 		ARChord& operator += (const rational& d);		///< add d to all notes duration

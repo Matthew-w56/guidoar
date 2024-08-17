@@ -131,7 +131,8 @@ void seqCleaner::visitEnd ( Sguidotag& elt )
 //_______________________________________________________________________________
 void seqCleaner::visitStart ( SARChord& elt )
 {
-	fCurrentDuration = elt->totalduration (fCurrentDuration, 0);
+	int zero = 0;
+	fCurrentDuration = elt->totalduration (fCurrentDuration, zero);
 	if (fInTie) {						// we should get 2 chords to merge
 		fTieChord = true;				// a flag to prevent notes from being handled by ARNote visit
 		if (fFirstCTied) {				// we've already got the first chord

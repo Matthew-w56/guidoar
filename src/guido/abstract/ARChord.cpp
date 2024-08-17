@@ -207,7 +207,7 @@ void ARChord::midiPitch(int& currentoctave, vector<int>& pitches) const
 }
 
 //______________________________________________________________________________
-rational ARChord::totalduration(rational current, int currentdots)	const
+rational ARChord::totalduration(rational& current, int& currentdots) const
 {
 	rationals dlist;
 	duration (dlist, current, currentdots);
@@ -236,6 +236,22 @@ rational ARChord::duration() const
 			maxd.setNumerator (0);						// indicated using a null value
 	}
 	return maxd;
+}
+
+int ARChord::GetDots() {
+	int maxDots = 0;
+	for (int i = 0; i < notes().size(); i++) {
+		int currDots = notes().at(i)->GetDots();
+		if (currDots > maxDots) maxDots = currDots;
+	}
+	return maxDots;
+}
+
+void ARChord::SetDots(int dots) {
+	if (dots < 0 || dots > 2) return;
+	for (int i = 0; i < notes().size(); i++) {
+		notes().at(i)->SetDots(dots);
+	}
 }
 
 ARChord& ARChord::operator  =  (const rational& d)	{ chordequal dc; dc(this, d); return *this;  }
