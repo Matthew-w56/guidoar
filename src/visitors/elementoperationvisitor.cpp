@@ -466,9 +466,6 @@ static void setNoteToMidiPitch(SARNote note, int pitch, int keySig) {
 	
 	getInfoFromMidiPitch(pitch, keySig, &name, &octave, &accidental);
 	
-	printf("Decided to set note to: %s%d with accidental %d!\n\n", name.c_str(), octave, accidental);
-	std::cout.flush();
-	
 	// Go and do the setting
 	note->setName(name);
 	note->SetOctave(octave);
