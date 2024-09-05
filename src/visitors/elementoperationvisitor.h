@@ -34,7 +34,7 @@ namespace guido
 */
 
 enum OpIntent {
-	InsertNote, DeleteEvent, AddMeasure, SetElementProperties, SetGroupProperties
+	InsertNote, DeleteEvent, AddMeasure, SetElementProperties, SetGroupProperties, DeleteRange
 };
 
 struct NewNoteInfo {
@@ -60,9 +60,15 @@ class gar_export elementoperationvisitor :
 		         elementoperationvisitor() {  }
 		virtual ~elementoperationvisitor() {  }
 		
+		// Methods to add/remove elements
 		OpResult 	deleteEvent   (const Sguidoelement& score, const rational& time, unsigned int voiceIndex, int midiPitch=-1);
+		OpResult	deleteRange	  (const Sguidoelement& score, const rational& startTime, const rational& endTime, int startVoice, int endVoice);
 		OpResult	insertNote	  (const Sguidoelement& score, NewNoteInfo noteInfo);
+		
+		// Methods to adjust score as a whole
 		void		appendMeasure (const Sguidoelement& score);
+		
+		// Methods that adjust existing elements
 		OpResult	setDurationAndDots(const Sguidoelement& score, const rational& time, int voice, rational newDur, int newDots);
 		OpResult	setAccidental(const Sguidoelement& score, const rational& time, int voice, int midiPitch, int newAccidental, int* resultPitch);
 		OpResult 	setNotePitch(const Sguidoelement& score, const rational& time, int voice, int oldPitch, int newPitch);
@@ -84,7 +90,7 @@ class gar_export elementoperationvisitor :
 	protected:
 	
 		void 		handleEqualDurationsNoteInsertion(SARNote& noteToAdd);
-		OpResult 	cutScoreAndInsert(SARVoice& voice, Sguidoelement existing, Sguidoelement newEl);
+		OpResult 	cutScoreAndInsert(SARVoice& voice, Sguidoelement existing, std::vector<Sguidoelement> newEls);
 	
 			// These represent what we are looking for
 		rational		fTargetDate;

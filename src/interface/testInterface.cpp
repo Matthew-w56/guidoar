@@ -23,6 +23,16 @@ using guido::NewNoteInfo;
 using guido::OpResult;
 
 // ------------------------------------[ Helper Methods (public methods below) ]-----------------------------------------
+rational doubleToRational(double input) {
+	int denominator = 1;
+	double numerDouble = input;
+	while ((int)(numerDouble) != numerDouble) {
+		denominator *= 10;
+		numerDouble *= 10;
+	}
+	rational output = rational((int)(numerDouble), denominator).rationalise();
+	return output;
+}
 
 static SARMusic read (const char* buff)
 {
@@ -61,7 +71,38 @@ char* deleteEvent(const char* scoreData, int num, int den, unsigned int voice, i
 	// Run the delete routine
 	visitor.deleteEvent(score, time, voice-1, midiPitch);
 	
-	// Print the score
+	// Print the score to a string buffer
+	ostringstream oss;
+	score->print(oss);
+	
+	// Return a pointer to the text data
+	return getPersistentPointer(oss.str());
+}
+
+/**
+ *  Reads in the file referenced as a Guido score, deletes the elements in the range
+ *  given.  Returns the text data for the resulting score.
+ * 
+ *  Voice is given in 1-based counting, and this method transfers it to 0-based counting.
+ */
+char* deleteRange(const char* scoreData, double startDur, double endDur, int startVoice, int endVoice) {
+	// Read the score.  If that fails, return error code as a string.
+	SARMusic score = read(scoreData);
+	if (!score) return "ERROR Error reading score!  (No score operation performed)";
+	
+	// Initialize the variables to pass in
+	elementoperationvisitor visitor;
+	rational startTime = doubleToRational(startDur);
+	rational endTime = doubleToRational(endDur);
+	
+	// Run the deleteRange method
+	OpResult result = visitor.deleteRange(score, startTime, endTime, startVoice-1, endVoice-1);
+	
+	if (result != OpResult::success) {
+		return "ERROR: Problem in delete range operation! (Result not SUCCESS)";
+	}
+	
+	// Print the score to a string buffer
 	ostringstream oss;
 	score->print(oss);
 	

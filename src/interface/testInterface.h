@@ -10,6 +10,7 @@ extern "C" {
 #include "arexport.h"
 
 gar_export char* deleteEvent(const char* scoreData, int num, int den, unsigned int voice, int midiPitch);
+gar_export char* deleteRange(const char* scoreData, double startDur, double endDur, int startVoice, int endVoice);
 gar_export char* insertNote(const char* scoreData, int startNum, int startDen, int durNum, int durDen, int midiPitch, int voice, int dots, int insistedAccidental);
 gar_export char* setDurationAndDots(const char* scoreData, int elStartNum, int elStartDen, int voice, int newDurNum, int newDurDen, int newDots);
 gar_export char* setAccidental(const char* scoreData, int elStartNum, int elStartDen, int voice, int midiPitch, int newAccidental, int* resultPitch);
