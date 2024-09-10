@@ -34,7 +34,7 @@ namespace guido
 */
 
 enum OpIntent {
-	InsertNote, DeleteEvent, AddMeasure, SetElementProperties, SetGroupProperties, DeleteRange
+	InsertNote, DeleteEvent, AddMeasure, SetElementProperties, SetGroupProperties, DeleteRange, InsertRange
 };
 
 struct NewNoteInfo {
@@ -64,6 +64,7 @@ class gar_export elementoperationvisitor :
 		OpResult 	deleteEvent   (const Sguidoelement& score, const rational& time, unsigned int voiceIndex, int midiPitch=-1);
 		OpResult	deleteRange	  (const Sguidoelement& score, const rational& startTime, const rational& endTime, int startVoice, int endVoice);
 		OpResult	insertNote	  (const Sguidoelement& score, NewNoteInfo noteInfo);
+		OpResult  	insertRange	  (const Sguidoelement& score, SARVoice elsToAdd, rational startTime, int voice, rational insertListDur);
 		
 		// Methods to adjust score as a whole
 		void		appendMeasure (const Sguidoelement& score);
@@ -72,6 +73,7 @@ class gar_export elementoperationvisitor :
 		OpResult	setDurationAndDots(const Sguidoelement& score, const rational& time, int voice, rational newDur, int newDots);
 		OpResult	setAccidental(const Sguidoelement& score, const rational& time, int voice, int midiPitch, int newAccidental, int* resultPitch);
 		OpResult 	setNotePitch(const Sguidoelement& score, const rational& time, int voice, int oldPitch, int newPitch);
+		OpResult	shiftRangeNotePitch(const Sguidoelement& score, const rational& startTime, const rational& endTime, int startVoice, int endVoice, int pitchShiftDirection);
 		OpResult 	shiftNotePitch(const Sguidoelement& score, const rational& time, int voice, int midiPitch, int pitchShiftDirection, int* resultPitch);
 		
 		
@@ -91,6 +93,7 @@ class gar_export elementoperationvisitor :
 	
 		void 		handleEqualDurationsNoteInsertion(SARNote& noteToAdd);
 		OpResult 	cutScoreAndInsert(SARVoice& voice, Sguidoelement existing, std::vector<Sguidoelement> newEls);
+		OpResult 	cutScoreAndInsert(SARVoice& voice, Sguidoelement existing, std::vector<Sguidoelement> newEls, rational insertListDur);
 	
 			// These represent what we are looking for
 		rational		fTargetDate;

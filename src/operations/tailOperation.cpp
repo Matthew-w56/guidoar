@@ -73,6 +73,13 @@ Sguidoelement tailOperation::operator() ( const Sguidoelement& score, const rati
 	}
 	return outscore;
 }
+//_______________________________________________________________________________
+Sguidoelement tailOperation::operator() ( const Sguidoelement& score, const rational& duration, bool pushTags ) {
+	fPushTags = pushTags;
+	Sguidoelement output = (*this)(score, duration);
+	fPushTags = true; // Revert to default of 'true'
+	return output;
+}
 
 //________________________________________________________________________
 void tailOperation::flushTags()
@@ -260,7 +267,7 @@ void tailOperation::visitStart ( Sguidotag& elt )
 	}
 	else {
 		int type = elt->getType();
-		if ((type == kTText) ||(type == kTLyrics))		// skip text and lyrics
+		if ((!fPushTags) || (type == kTText) ||(type == kTLyrics))		// skip text and lyrics
 			elt->setID (-1);							// to prevent the tag from being popped by visitEnd
 		else pushTag (elt);
 	}

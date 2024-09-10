@@ -59,6 +59,15 @@ class gar_export tailOperation :
 			\return a new score
 		*/
 		Sguidoelement operator() ( const Sguidoelement& score, const rational& duration );
+		
+		/*! Cuts the head of a score before a given duration, and follows the given flag for
+			whether to keep tags along the way
+			\param score the score to be cut
+			\param duration the score duration to drop
+			\param pushTags whether to keep tags on the way
+			\return a new score
+		*/
+		Sguidoelement operator() ( const Sguidoelement& score, const rational& duration, bool pushTags );
 
 		/*! cuts the head of a score before a given duration
 			\param score1 the score to be cut
@@ -74,6 +83,7 @@ class gar_export tailOperation :
 		bool			fCopy;				// a flag to start copy
 		bool			fForceDuration;		// a flag to force explicit duration
 		bool			fForceOctave;		// a flag to force explicit octave
+		bool			fPushTags = true;	// a flag to work to maintain flags as a whole or not
 		bool			fPopTie;
 
 		int				fCurrentOctave;

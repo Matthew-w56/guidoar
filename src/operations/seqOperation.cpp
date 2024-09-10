@@ -174,18 +174,17 @@ void seqCleaner::visitStart	( SARNote& elt )
 	else clonevisitor::visitStart (elt);
 }
 
-//______________________________________________________________________________
+//_______________________________________________________________________________
 // seq operations
 //_______________________________________________________________________________
-SARMusic seqOperation::operator() ( const SARMusic& score1, const SARMusic& score2 )
-{
+Sguidoelement seqOperation::operator() ( const Sguidoelement score1, const Sguidoelement score2 ) {
 	fCurrentDuration = rational(1,4);
 	Sguidoelement outscore = ARFactory::instance().createMusic();
 	if (outscore) {
 		push (outscore);
 		
-		Sguidoelement sc1 = score1 ? Sguidoelement(score1) : outscore;
-		Sguidoelement sc2 = score2 ? Sguidoelement(score2) : outscore;
+		Sguidoelement sc1 = score1 ? score1 : outscore;
+		Sguidoelement sc2 = score2 ? score2 : outscore;
 
 		ctree<guidoelement>::literator s1i = sc1->lbegin();
 		ctree<guidoelement>::literator s2i = sc2->lbegin();
@@ -234,7 +233,16 @@ SARMusic seqOperation::operator() ( const SARMusic& score1, const SARMusic& scor
 		rm.browse (*outscore);
 		outscore = rmTags.result();
 	}
-	return dynamic_cast<ARMusic*>((guidoelement*)outscore);
+	return outscore;
+}
+//_______________________________________________________________________________
+SARMusic seqOperation::operator() ( const SARMusic& score1, const SARMusic& score2 )
+{
+	Sguidoelement result = (*this)(
+		score1 ? Sguidoelement(score1) : score1,
+		score2 ? Sguidoelement(score2) : score2
+	);
+	return dynamic_cast<ARMusic*>((guidoelement*)result);
 }
 
 //________________________________________________________________________

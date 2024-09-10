@@ -2,6 +2,7 @@
 #include "testInterface.h"
 
 #include <iostream>
+#include <vector>
 
 #include "ARTypes.h"
 #include "guidoparser.h"
@@ -9,8 +10,18 @@
 #include "elementoperationvisitor.h"
 #include "ARNote.h"
 #include "ARFactory.h"
+#include "libguidoar.h"
+#include "tailOperation.h"
+#include "headOperation.h"
+#include "topOperation.h"
+#include "bottomOperation.h"
+#include "countvoicesvisitor.h"
+#include "durationvisitor.h"
+#include "seqOperation.h"
+#include "getvoicesvisitor.h"
 
 using std::cout;
+using std::vector;
 using std::ostringstream;
 using guido::SARMusic;
 using guido::guidoparser;
@@ -21,6 +32,15 @@ using guido::SARNote;
 using guido::ARFactory;
 using guido::NewNoteInfo;
 using guido::OpResult;
+using guido::tailOperation;
+using guido::headOperation;
+using guido::topOperation;
+using guido::countvoicesvisitor;
+using guido::bottomOperation;
+using guido::durationvisitor;
+using guido::seqOperation;
+using guido::getvoicesvisitor;
+using guido::SARVoice;
 
 // ------------------------------------[ Helper Methods (public methods below) ]-----------------------------------------
 rational doubleToRational(double input) {
@@ -85,15 +105,15 @@ char* deleteEvent(const char* scoreData, int num, int den, unsigned int voice, i
  * 
  *  Voice is given in 1-based counting, and this method transfers it to 0-based counting.
  */
-char* deleteRange(const char* scoreData, double startDur, double endDur, int startVoice, int endVoice) {
+char* deleteRange(const char* scoreData, int startNum, int startDen, int endNum, int endDen, int startVoice, int endVoice) {
 	// Read the score.  If that fails, return error code as a string.
 	SARMusic score = read(scoreData);
 	if (!score) return "ERROR Error reading score!  (No score operation performed)";
 	
 	// Initialize the variables to pass in
 	elementoperationvisitor visitor;
-	rational startTime = doubleToRational(startDur);
-	rational endTime = doubleToRational(endDur);
+	rational startTime = rational(startNum, startDen);
+	rational endTime = rational(endNum, endDen);
 	
 	// Run the deleteRange method
 	OpResult result = visitor.deleteRange(score, startTime, endTime, startVoice-1, endVoice-1);
@@ -238,5 +258,150 @@ char* shiftNotePitch(const char* scoreData, int elStartNum, int elStartDen, int 
 	score->print(oss);
 	
 	// Return a pointer to the text data
+	return getPersistentPointer(oss.str());
+}
+
+char* shiftRangeNotePitch(const char* scoreData, int startNum, int startDen, int endNum, int endDen, int startVoice, int endVoice, int pitchShiftDirection) {
+	if (startDen == 0 || endDen == 0) return "ERROR Duration denominators cannot be zero!";
+	if (startVoice < 0 || endVoice < 0) return "ERROR Voices cannot be < 0!";
+	
+	// Read the score.  If that fails, return error code as a string.
+	SARMusic score = read(scoreData);
+	if (!score) return "ERROR Couldn't read score!  (No score operation performed)";
+	
+	// Normalize the pitch shift direction to be +/- 1, or zero
+	if (pitchShiftDirection != 0) {
+		pitchShiftDirection /= abs(pitchShiftDirection);
+	}
+	
+	// Create the rationals needed
+	rational startTime = rational(startNum, startDen);
+	rational endTime = rational(endNum, endDen);
+	
+	elementoperationvisitor visitor;
+	
+	visitor.shiftRangeNotePitch(
+		score,
+		startTime,
+		endTime,
+		startVoice-1,
+		endVoice-1,
+		pitchShiftDirection
+	);
+	
+	// Print the score
+	ostringstream oss;
+	score->print(oss);
+	
+	// Return a pointer to the text data
+	return getPersistentPointer(oss.str());
+}
+
+// Pass in voices in 1-based counting. This is adjust them.
+char* getSelection(const char* scoreData, int startNum, int startDen, int endNum, int endDen, int startVoice, int endVoice) {
+	// Read and verify times
+	rational startTime = rational(startNum, startDen);
+	rational endTime = rational(endNum, endDen);
+	if (startTime == endTime) return "ERROR selection was length of zero";
+	if (startTime > endTime) {
+		// Swap times so (start < end)
+		rational temp = endTime;
+		endTime = startTime;
+		startTime = temp;
+	}
+	
+	// Read the score.  If that fails, return error code as a string.
+	Sguidoelement score = read(scoreData);
+	if (!score) return "ERROR Couldn't read score!  (No score operation performed)";
+	
+	countvoicesvisitor voiceCounter;
+	int voices = voiceCounter.count(score);
+	startVoice--; endVoice--;  // Convert from 1-based counting to 0-based counting
+	if (endVoice < startVoice) {
+		int temp = startVoice;
+		startVoice = endVoice;
+		endVoice = temp;
+	}
+	if (startVoice < 0) startVoice = 0;
+	if (endVoice > voices) endVoice = voices;
+	
+	// Do cut operations
+	topOperation toperation;
+	score = toperation(score, endVoice+1);  // +1 because it keeps the top X voices, and we changed X to be 0-based counting
+	bottomOperation bottomOperation;
+	score = bottomOperation(score, startVoice);
+	
+	if (! score) return "ERROR Score didn't make it through the voice cutting operations";
+	
+	tailOperation tailOperator;
+	score = tailOperator(score, startTime, false);
+	headOperation headOperator;
+	score = headOperator(score, endTime - startTime);
+	
+	if (! score) return "ERROR Score didn't make it through the duration cutting operations";
+	
+	// Return string
+	ostringstream oss;
+	score->print(oss);
+	return getPersistentPointer(oss.str());
+}
+
+char* pasteToDuration(const char* scoreData, const char* selectionData, int startNum, int startDen, int startVoice) {
+	rational startDur = rational(startNum, startDen);
+	
+	// Read the score and selection.  If that fails, return error code as a string.
+	Sguidoelement score = read(scoreData);
+	if (!score) return "ERROR Couldn't read score!  (No score operation performed)";
+	Sguidoelement selection = read(selectionData);
+	if (!selection) return "ERROR Couldn't read selection!  (No score operation performed)";
+	
+	// Count how many voices are in the score and selection
+	countvoicesvisitor voiceCounter;
+	int scoreVoices = voiceCounter.count(score);
+	int selectionVoices = voiceCounter.count(selection);
+	
+	// If the voice counts don't line up, deal with it
+	if (scoreVoices == 0 || selectionVoices == 0) return "ERROR Either score or selection have zero voices";
+	if (selectionVoices > scoreVoices) {
+		// Cut the bottom voices off of the selection so it fits into score
+		topOperation toperation;
+		selection = toperation(selection, scoreVoices);
+		selectionVoices = scoreVoices;
+	}
+	
+	// If trying to paste multi-voice selection too far down the voices, shift it up to fit in the score
+	startVoice--;
+	int largestPossibleStartVoice = scoreVoices - selectionVoices;
+	if (startVoice > largestPossibleStartVoice) startVoice = largestPossibleStartVoice;
+	
+	// Find how long the score and selection are
+	durationvisitor dvis;
+	rational scoreDur = dvis.duration(score);
+	rational selectionDur = dvis.duration(selection);
+	
+	// If we need to, extend the base score
+	// if (scoreDur < selectionDur + startDur) {
+	// 	guido::extendVisitor extender;
+	// 	score = extender.extend(score, selectionDur + startDur);
+	// }
+	// TODO: Deal with this!
+	
+	getvoicesvisitor gvv;
+	vector<SARVoice> selectionVoiceList = gvv(selection);
+	elementoperationvisitor visitor;
+	for (int i = 0; i < selectionVoiceList.size(); i++) {
+		OpResult result = visitor.insertRange(score, selectionVoiceList.at(i), startDur, startVoice + i, selectionDur);
+		if (result != OpResult::success) return "ERROR Insert range wasn't a success";
+	}
+	
+	// Return string
+	ostringstream oss;
+	score->print(oss);
+	return getPersistentPointer(oss.str());
+}
+
+char* testMethod(const char* scoreData) {
+	ostringstream oss;
+	guido::guidoVMultDuration(scoreData, 2.0f, oss);
 	return getPersistentPointer(oss.str());
 }

@@ -86,7 +86,8 @@ class gar_export seqOperation :
 				 seqOperation() {}
 		virtual ~seqOperation() {}
 
-		SARMusic operator() ( const SARMusic& score1, const SARMusic& score2 );
+		SARMusic 	  operator() ( const SARMusic& score1, const SARMusic& score2 );
+		Sguidoelement operator() ( const Sguidoelement score1, const Sguidoelement score2 );
 };
 
 /*! @} */
