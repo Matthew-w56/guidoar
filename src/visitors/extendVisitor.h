@@ -48,8 +48,6 @@ public:
 	virtual void visitStart( SARVoice& elt  ) { fCurrentMeter = 1; }
 	virtual void visitStart( Sguidotag& elt ) { if (elt->getName() == "meter") fCurrentMeter = elt->attributes().at(0)->getValue(); }
 	virtual void visitEnd  ( SARVoice& elt  ) {
-		printf("Starting a visitEnd for voice!\n");
-		std::cout.flush();
 		rational durAdded = rational(0, 1);
 		rational currentMeterDur = rational(fCurrentMeter);
 		while (durAdded < fDurToFill) {
@@ -67,8 +65,6 @@ public:
 			
 			durAdded += currentMeterDur;
 		}
-		printf("Done with visitEnd for voice\n");
-		std::cout.flush();
 	}
 	virtual void visitEnd  ( Sguidotag& elt ) { }
 

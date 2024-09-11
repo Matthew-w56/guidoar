@@ -218,11 +218,7 @@ OpResult elementoperationvisitor::deleteEvent(const Sguidoelement& score, const 
 }
 
 OpResult elementoperationvisitor::deleteRange (const Sguidoelement& score, const rational& startTime, const rational& endTime, int startVoice, int endVoice) {
-	print("Deleting a range!\n");
 	for (int currVoice = startVoice; currVoice <= endVoice; currVoice++) {
-		print("Deletion for voice ");
-		print(currVoice);
-		print(":\n");
 		fTargetVoice = currVoice;
 		fTargetDate = startTime;
 		fMidiPitch = -1;
@@ -230,23 +226,13 @@ OpResult elementoperationvisitor::deleteRange (const Sguidoelement& score, const
 		init();
 		
 		fBrowser.browse(*score);
-		print("  - Done browsing\n");
 		
 		if (fResultNote == nullptr && fResultChord == nullptr) return OpResult::failure;
-		
-		print("  - Found Note: ");
-		print(fResultNote != nullptr);
-		print("\n  - Found Chord: ");
-		print(fResultChord != nullptr);
-		print("\n");
 		
 		// Assemble list of rests to fill gap with
 		rationals restDursToAdd = rational::getBaseRationals(endTime - startTime);
 		std::vector<Sguidoelement> restsToAdd;
 		for (int i = 0; i < restDursToAdd.size(); i++) {
-			print("   - Planning rest of size ");
-			print(restDursToAdd.at(i));
-			print("\n");
 			SARNote rest = ARFactory().createNote("_");
 			*rest = restDursToAdd.at(i);
 			rest->SetDots(0);
