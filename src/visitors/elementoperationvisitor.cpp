@@ -645,180 +645,67 @@ OpResult elementoperationvisitor::cutScoreAndInsert(SARVoice& voice, Sguidoeleme
 			timeToEat += getRealDuration(newEls.at(i));
 		}
 	}
-	print("Cut Score and Insert Method ------------------------\n");
-	std::cout << "Inserting " << newEls.size() << " elements of total duration " << timeToEat << " into voice\n";
-	std::cout.flush();
 	
-	// TEST CODE: USE VECTOR DIRECTLY - NO ITERATOR
-	std::vector<Sguidoelement> voiceChildren = voice->elements();
 	// Seek to the existing element
 	auto it = voice->begin();
 	for ( ; it != voice->end() && (*it) != existing; it.rightShift());
 	if (it == voice->end()) return OpResult::failure;
-	print("Found our start element\n");
+	
 	// Basic setup for later
 	rational zeroR = rational(0, 1);
 	lastDurFound = zeroR;
 	rational implicitDur = ARNote::getImplicitDuration();
 	rational currentDur = getRealDuration(*it);
+	
 	// Eat full elements until we don't need to any more
 	while (timeToEat >= currentDur) {
-		Sguidoelement el = *it;
-		std::cout << "<Eat Loop> TimeToEat: " << timeToEat << " CurrentDur: " << currentDur <<  " El Name: " << el->getName() << "\n";
-		std::cout.flush();
-		if ((el->getName() == "chord" && currentDur == zeroR) || currentDur == implicitDur) {
-			print("Replacing duration with last found..\n");
+		// If this note doesn't have a duration, default to the last one we saw.
+		// If it does, save that duration for when we see one that doesn't.
+		if (((*it)->getName() == "chord" && currentDur == zeroR) || currentDur == implicitDur) {
 			currentDur = lastDurFound;
 		} else if (currentDur == zeroR) {
-			print("Deleting tag that we don't want anymore..\n");
 			// Found a tag. Delete it and move on
 			it = voice->erase(it);
 			continue;
 		} else {
 			lastDurFound = currentDur;
 		}
-		if (currentDur == zeroR) {
-			print("Why am I hitting this?\n");
-			it.rightShift();
-		} else {
-			print("Erasing element..\n");
-			it = voice->erase(it);
-			timeToEat = (timeToEat - currentDur).rationalise();
-		}
-		print("Done with main operations for eating loop\n");
-		if (timeToEat == zeroR) { print("We don't have to eat any more!\n"); break; }
-		if (it == voice->end()) {
-			print("Returning that we need more measures\n");
-			return OpResult::needsMeasureAdded;
-		}
-		print("About to pull next duration\n");
+		
+		// Eat the element and subtract its duration from timeToEat
+		it = voice->erase(it);
+		timeToEat = (timeToEat - currentDur).rationalise();
+		
+		// Do some flow control and setup for next loop iteration
+		if (timeToEat == zeroR) break;
+		if (it == voice->end()) return OpResult::needsMeasureAdded;
 		currentDur = getRealDuration(*it);
 	}
 	
+	// If we want to eat just part of this last element
 	if (timeToEat > zeroR) {
-		print("We still need to eat more!\n");
 		// Cut this element's duration by the amount that we still want to eat
-		Sguidoelement el = *it;
-		ARChord* isChord = dynamic_cast<ARChord*>(&*el);
-		ARNote* isNote = dynamic_cast<ARNote*>((&*el));
+		ARChord* isChord = dynamic_cast<ARChord*>(&**it);
+		ARNote* isNote = dynamic_cast<ARNote*>((&**it));
 		if (isChord != nullptr) {
 			breakChordTo(fResultVoice, isChord, timeToEat);
 		} else if (isNote != nullptr) {
 			breakNoteTo(fResultVoice, isNote, timeToEat);
-		} else {
-			print("Oh no!  This is neither a note, or a chord!\n");
 		}
-		print("Done eating that last bit!\n");
 	}
 	
-	print("Got to the inserting part.\n");
-	for (int i = 0; i < newEls.size(); i++) {
-		if (it == voice->end()) {
-			// Put rest at end
-			print("Putting rest of the elements at end of score\n");
-			for (int ii = i; ii < newEls.size(); ii++) {
-				print("- Pushing element to end\n");
-				voice->push(newEls.at(ii));
-			}
-			print("Done pushing elements to end\n");
-			break;
-		} else {
-			print("Inserting to location\n");
-			Sguidoelement el = (*it);
-			std::cout << "Element name: " << el->getName() << "\nElement duration: " << getRealDuration(el) << "\n";
-			std::cout.flush();
-			print("- Inserting Element.. ");
+	// Now actually insert the new elements that we wanted to insert
+	if (it == voice->end()) {
+		// If this wasn't reversed, the notes would appear reversed
+		for (int i = newEls.size()-1; i > -1; i--) {
+			voice->push(newEls.at(i));
+		}
+	} else {
+		for (int i = 0; i < newEls.size(); i++) {
 			it = voice->insert(it, newEls.at(i));
-			it.rightShift();
-			print("  .. And we're done.\n");
 		}
 	}
 	
-	print("Done with eat method! (returning success)\n");
-	
-	
-	// Seek to the start element
-	// auto it = voice->begin();
-	// int foundIndex = 0;
-	// // for ( ; existing != (*it) && it != voice->end(); it++);  // Does this work too?
-	// while (existing != (*it) && it != voice->end()) { it++; foundIndex++; }
-	// rational zeroR = rational(0, 1);
-	// lastDurFound = zeroR;
-	// rational implicitDur = ARNote::getImplicitDuration();
-	// rational currentDur = getRealDuration(*it);
-	
-	// // Eat elements until we run out of time to eat
-	// while (timeToEat >= currentDur) {
-	// 	print("Eating element..\n");
-	// 	printP(*it);
-	// 	print("\n");
-	// 	if (((*it)->getName() == "chord" && currentDur == zeroR) || currentDur == implicitDur) {
-	// 		currentDur = lastDurFound;
-	// 	} else if (currentDur == zeroR) {
-	// 		// Not a chord, but zero duration. Probs a tag
-	// 		it = voice->erase(it);
-	// 		continue;
-	// 	} else {
-	// 		// Duration is not zero, and is not -99999
-	// 		lastDurFound = currentDur;
-	// 	}
-	// 	print("Done with IF block 1\n");
-		
-	// 	if (currentDur != zeroR) {
-	// 		it = voice->erase(it);
-	// 		timeToEat = (timeToEat - currentDur).rationalise();
-	// 	} else {
-	// 		// Increment iterator and currentDuration
-	// 		foundIndex += (*it)->elements().size() + 1;
-	// 		it.rightShift();
-	// 	}
-	// 	print("Done with IF block 2\n");
-		
-	// 	if (timeToEat == zeroR) break;
-	// 	print("Checked part A\n");
-	// 	if (it == voice->end()) {
-	// 		print("Returning that we need more measures!\n");
-	// 		return OpResult::needsMeasureAdded;
-	// 	}
-	// 	print("Checked part B\n");
-	// 	std::cout << (*it)->getName() << "\n";
-	// 	std::cout.flush();
-		
-	// 	currentDur = getRealDuration(*it);
-	// 	print("Done eating element..\n");
-	// }
-	
-	// // Deal with the case where the note we're looking at has more duration than we need
-	// if (timeToEat > zeroR) {
-	// 	print("Going into the MORE TO DO routine!\n");
-	// 	// Cut this element's duration by the amount that we still want to eat
-	// 	ARChord* isChord = dynamic_cast<ARChord*>((&**it));
-	// 	ARNote* isNote = dynamic_cast<ARNote*>((&**it));
-	// 	if (isChord != nullptr) {
-	// 		breakChordTo(fResultVoice, isChord, timeToEat);
-	// 	} else if (isNote != nullptr) {
-	// 		breakNoteTo(fResultVoice, isNote, timeToEat);
-	// 	} else {
-	// 		print("Oh no!  This is neither a note, or a chord!\n");
-	// 	}
-	// }
-	
-	// // Seek to get new iterator and then insert
-	// auto newIt = voice->begin();
-	// for (int i = 0; i < foundIndex; i++) { print("Inc newIt..\n"); newIt++; }
-	// for (int e = 0; e < newEls.size(); e++) {
-	// 	print("About to use newIt..\n");
-	// 	if (newIt == voice->end()) {
-	// 		print("About to do A\n");
-	// 		voice->push(newEls.at(e));
-	// 		print("Done doing A\n");
-	// 	} else {
-	// 		print("About to do B\n");
-	// 		voice->insert(newIt, newEls.at(e));
-	// 		print("Done doing B\n");
-	// 	}
-	// 	print("Done using newIt..\n");
-	// }
+	// Finish the method off with a successful return
 	return OpResult::success;
 }
 
