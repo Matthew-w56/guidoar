@@ -709,11 +709,19 @@ OpResult elementoperationvisitor::cutScoreAndInsert(SARVoice& voice, Sguidoeleme
 	return OpResult::success;
 }
 
-// Duration "finagling" handler.  Deletes or cuts notes to make room for what we want to add
+/*! \brief See \c cutScoreAndInsertNote(voice, existing, newEls, insertListDur). Calls that method
+		   with a blank list duration, allowing that method to find it for itself.
+	\param voice The voice to add the elements to (only works with one voice at a time)
+	\param existing The first element in the existing voice to replace
+	\param newEls The list of elements to add to the voice
+*/
 OpResult elementoperationvisitor::cutScoreAndInsert(SARVoice& voice, Sguidoelement existing, std::vector<Sguidoelement> newEls) {
 	return cutScoreAndInsert(voice, existing, newEls, rational(-1, 1));
 }
-// Helper
+
+/*! Takes in
+
+*/
 void elementoperationvisitor::handleEqualDurationsNoteInsertion(SARNote& noteToAdd) {
 	bool noChord = fResultChord == nullptr;
 	bool noteIsRest = fResultNote->isRest();

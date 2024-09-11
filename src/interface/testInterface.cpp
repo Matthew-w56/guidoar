@@ -91,13 +91,17 @@ char* deleteEvent(const char* scoreData, int num, int den, unsigned int voice, i
 	rational time = rational(num, den);
 	
 	// Run the delete routine
-	visitor.deleteEvent(score, time, voice-1, midiPitch);
-	
-	// Print the score to a string buffer
+	OpResult result = visitor.deleteEvent(score, time, voice-1, midiPitch);
 	ostringstream oss;
-	score->print(oss);
 	
-	// Return a pointer to the text data
+	// If an error happened, return info about what it was
+	if (result != OpResult::success) {
+		oss << "ERROR Could not DELETE EVENT!  Error code: " << result;
+		return getPersistentPointer(oss.str());
+	}
+	
+	// Otherwise, return the score
+	score->print(oss);
 	return getPersistentPointer(oss.str());
 }
 
@@ -116,21 +120,19 @@ char* deleteRange(const char* scoreData, int startNum, int startDen, int endNum,
 	elementoperationvisitor visitor;
 	rational startTime = rational(startNum, startDen);
 	rational endTime = rational(endNum, endDen);
-	std::cout << "Deleting from " << startTime << "-" << endTime << "\n";
-	std::cout.flush();
 	
 	// Run the deleteRange method
 	OpResult result = visitor.deleteRange(score, startTime, endTime, startVoice-1, endVoice-1);
+	ostringstream oss;
 	
+	// If an error happened, return info about what it was
 	if (result != OpResult::success) {
-		return "ERROR: Problem in delete range operation! (Result not SUCCESS)";
+		oss << "ERROR Could not DELETE RANGE!  Error code: " << result;
+		return getPersistentPointer(oss.str());
 	}
 	
-	// Print the score to a string buffer
-	ostringstream oss;
+	// Otherwise, return the score
 	score->print(oss);
-	
-	// Return a pointer to the text data
 	return getPersistentPointer(oss.str());
 }
 
@@ -158,21 +160,28 @@ char* insertNote(const char* scoreData, int startNum, int startDen, int durNum, 
 	noteInfo.dots = dots;
 	noteInfo.insistedAccidental = insistedAccidental;
 	
-	// Run the delete routine
-	OpResult result = visitor.insertNote(score, noteInfo);
-	
-	// If we need to try again, handle the old result and do so
-	if (result == OpResult::needsMeasureAdded) {
-		std::cout.flush();
-		visitor.appendMeasure(score);
-		OpResult secondResult = visitor.insertNote(score, noteInfo);
+	// If we need to, extend the base score
+	durationvisitor dvis;
+	rational scoreDur = dvis.duration(score);
+	rational noteStartDur = rational(startNum, startDen);
+	rational insertNoteDur = rational(durNum, durDen);
+	if (scoreDur < noteStartDur + insertNoteDur) {
+		guido::extendVisitor extender;
+		score = extender.extend(score, noteStartDur + insertNoteDur);
 	}
 	
-	// Print the score
+	// Run the delete routine
+	OpResult result = visitor.insertNote(score, noteInfo);
 	ostringstream oss;
-	score->print(oss);
 	
-	// Return a pointer to the text data
+	// If an error happened, return info about what it was
+	if (result != OpResult::success) {
+		oss << "ERROR Could not INSERT NOTE!  Error code: " << result;
+		return getPersistentPointer(oss.str());
+	}
+	
+	// Otherwise, return the score
+	score->print(oss);
 	return getPersistentPointer(oss.str());
 }
 
@@ -187,16 +196,16 @@ char* setDurationAndDots(const char* scoreData, int elStartNum, int elStartDen, 
 	
 	elementoperationvisitor visitor;
 	OpResult result = visitor.setDurationAndDots(score, rational(elStartNum, elStartDen), voice-1, desiredDur, newDots);
+	ostringstream oss;
 	
+	// If an error happened, return info about what it was
 	if (result != OpResult::success) {
-		return "ERROR Problem during operation!";
+		oss << "ERROR Could not SET DURATION AND DOTS!  Error code: " << result;
+		return getPersistentPointer(oss.str());
 	}
 	
-	// Print the score
-	ostringstream oss;
+	// Otherwise, return the score
 	score->print(oss);
-	
-	// Return a pointer to the text data
 	return getPersistentPointer(oss.str());
 }
 
@@ -210,13 +219,17 @@ char* setAccidental(const char* scoreData, int elStartNum, int elStartDen, int v
 	
 	elementoperationvisitor visitor;
 	
-	visitor.setAccidental(score, rational(elStartNum, elStartDen), voice-1, midiPitch, newAccidental, resultPitch);
-	
-	// Print the score
+	OpResult result = visitor.setAccidental(score, rational(elStartNum, elStartDen), voice-1, midiPitch, newAccidental, resultPitch);
 	ostringstream oss;
-	score->print(oss);
 	
-	// Return a pointer to the text data
+	// If an error happened, return info about what it was
+	if (result != OpResult::success) {
+		oss << "ERROR Could not SET ACCIDENTAL!  Error code: " << result;
+		return getPersistentPointer(oss.str());
+	}
+	
+	// Otherwise, return the score
+	score->print(oss);
 	return getPersistentPointer(oss.str());
 }
 
@@ -229,14 +242,17 @@ char* setNotePitch(const char* scoreData, int elStartNum, int elStartDen, int vo
 	if (!score) return "ERROR Error reading score!  (No score operation performed)";
 	
 	elementoperationvisitor visitor;
-	
-	visitor.setNotePitch(score, rational(elStartNum, elStartDen), voice-1, oldPitch, newPitch);
-	
-	// Print the score
+	OpResult result = visitor.setNotePitch(score, rational(elStartNum, elStartDen), voice-1, oldPitch, newPitch);
 	ostringstream oss;
-	score->print(oss);
 	
-	// Return a pointer to the text data
+	// If an error happened, return info about what it was
+	if (result != OpResult::success) {
+		oss << "ERROR Could not SET NOTE PITCH!  Error code: " << result;
+		return getPersistentPointer(oss.str());
+	}
+	
+	// Otherwise, return the score
+	score->print(oss);
 	return getPersistentPointer(oss.str());
 }
 
@@ -255,13 +271,17 @@ char* shiftNotePitch(const char* scoreData, int elStartNum, int elStartDen, int 
 	
 	elementoperationvisitor visitor;
 	
-	visitor.shiftNotePitch(score, rational(elStartNum, elStartDen), voice-1, midiPitch, pitchShiftDirection, resultPitch);
-	
-	// Print the score
+	OpResult result = visitor.shiftNotePitch(score, rational(elStartNum, elStartDen), voice-1, midiPitch, pitchShiftDirection, resultPitch);
 	ostringstream oss;
-	score->print(oss);
 	
-	// Return a pointer to the text data
+	// If an error happened, return info about what it was
+	if (result != OpResult::success) {
+		oss << "ERROR Could not SHIFT NOTE PITCH!  Error code: " << result;
+		return getPersistentPointer(oss.str());
+	}
+	
+	// Otherwise, return the score
+	score->print(oss);
 	return getPersistentPointer(oss.str());
 }
 
@@ -284,7 +304,7 @@ char* shiftRangeNotePitch(const char* scoreData, int startNum, int startDen, int
 	
 	elementoperationvisitor visitor;
 	
-	visitor.shiftRangeNotePitch(
+	OpResult result = visitor.shiftRangeNotePitch(
 		score,
 		startTime,
 		endTime,
@@ -292,12 +312,16 @@ char* shiftRangeNotePitch(const char* scoreData, int startNum, int startDen, int
 		endVoice-1,
 		pitchShiftDirection
 	);
-	
-	// Print the score
 	ostringstream oss;
-	score->print(oss);
 	
-	// Return a pointer to the text data
+	// If an error happened, return info about what it was
+	if (result != OpResult::success) {
+		oss << "ERROR Could not SHIFT RANGE PITCH!  Error code: " << result;
+		return getPersistentPointer(oss.str());
+	}
+	
+	// Otherwise, return the score
+	score->print(oss);
 	return getPersistentPointer(oss.str());
 }
 
@@ -355,9 +379,9 @@ char* pasteToDuration(const char* scoreData, const char* selectionData, int star
 	
 	// Read the score and selection.  If that fails, return error code as a string.
 	Sguidoelement score = read(scoreData);
-	if (!score) return "ERROR Couldn't read score!  (No score operation performed)";
+	if (!score) return "ERROR Couldn't read SCORE!  (No score operation performed)";
 	Sguidoelement selection = read(selectionData);
-	if (!selection) return "ERROR Couldn't read selection!  (No score operation performed)";
+	if (!selection) return "ERROR Couldn't read SELECTION!  (No score operation performed)";
 	
 	// Count how many voices are in the score and selection
 	countvoicesvisitor voiceCounter;
@@ -393,24 +417,16 @@ char* pasteToDuration(const char* scoreData, const char* selectionData, int star
 	vector<SARVoice> selectionVoiceList = gvv(selection);
 	elementoperationvisitor visitor;
 	for (int i = 0; i < selectionVoiceList.size(); i++) {
-		printf("About to insert on voice %d\n", startVoice+i);
-		std::cout.flush();
 		OpResult result = visitor.insertRange(score, selectionVoiceList.at(i), startDur, startVoice + i, selectionDur);
-		if (result != OpResult::success) return "ERROR Insert range wasn't a success";
+		if (result != OpResult::success) {
+			ostringstream oss;
+			oss << "ERROR Could not INSERT RANGE!  Error code: " << result;
+			return getPersistentPointer(oss.str());
+		}
 	}
-	printf("Done doing the actual operation.  About to print..\n");
-	std::cout.flush();
 	
 	// Return string
 	ostringstream oss;
 	score->print(oss);
-	printf("Done printing score\n");
-	std::cout.flush();
-	return getPersistentPointer(oss.str());
-}
-
-char* testMethod(const char* scoreData) {
-	ostringstream oss;
-	guido::guidoVMultDuration(scoreData, 2.0f, oss);
 	return getPersistentPointer(oss.str());
 }

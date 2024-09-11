@@ -93,6 +93,14 @@ class gar_export elementoperationvisitor :
 	
 		void 		handleEqualDurationsNoteInsertion(SARNote& noteToAdd);
 		OpResult 	cutScoreAndInsert(SARVoice& voice, Sguidoelement existing, std::vector<Sguidoelement> newEls);
+		/*! \brief Takes in a list of new elements to insert into the score (and the time to start adding them
+				at), and removes existing elements that take up that space so that the score remains the
+				same duration.
+			\param voice The voice to add the elements to (only works with one voice at a time)
+			\param existing The first element in the existing voice to replace
+			\param newEls The list of elements to add to the voice
+			\param insertListDur The duration of the new elements combined (pass in rational(-1, 1) to have the method attempt to find this itself)
+		*/
 		OpResult 	cutScoreAndInsert(SARVoice& voice, Sguidoelement existing, std::vector<Sguidoelement> newEls, rational insertListDur);
 	
 			// These represent what we are looking for
