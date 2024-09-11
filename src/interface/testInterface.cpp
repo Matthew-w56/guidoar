@@ -144,7 +144,7 @@ char* deleteRange(const char* scoreData, int startNum, int startDen, int endNum,
  */
 char* insertNote(const char* scoreData, int startNum, int startDen, int durNum, int durDen, int midiPitch, int voice, int dots, int insistedAccidental) {
 	// Read the score.  If that fails, return error code as a string.
-	SARMusic score = read(scoreData);
+	Sguidoelement score = read(scoreData);
 	if (!score) return "ERROR Error reading score!  (No score operation performed)";
 	
 	// Initialize the objects needed with raw parameter data
