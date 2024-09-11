@@ -19,6 +19,7 @@
 #include "durationvisitor.h"
 #include "seqOperation.h"
 #include "getvoicesvisitor.h"
+#include "extendVisitor.h"
 
 using std::cout;
 using std::vector;
@@ -41,6 +42,7 @@ using guido::durationvisitor;
 using guido::seqOperation;
 using guido::getvoicesvisitor;
 using guido::SARVoice;
+using guido::extendVisitor;
 
 // ------------------------------------[ Helper Methods (public methods below) ]-----------------------------------------
 rational doubleToRational(double input) {
@@ -380,23 +382,33 @@ char* pasteToDuration(const char* scoreData, const char* selectionData, int star
 	rational selectionDur = dvis.duration(selection);
 	
 	// If we need to, extend the base score
-	// if (scoreDur < selectionDur + startDur) {
-	// 	guido::extendVisitor extender;
-	// 	score = extender.extend(score, selectionDur + startDur);
-	// }
-	// TODO: Deal with this!
+	if (scoreDur < selectionDur + startDur) {
+		guido::extendVisitor extender;
+		score = extender.extend(score, selectionDur + startDur);
+	}
+	
+	printf("\nScore now: \n");
+	score->print(std::cout);
+	printf("\n\n");
+	std::cout.flush();
 	
 	getvoicesvisitor gvv;
 	vector<SARVoice> selectionVoiceList = gvv(selection);
 	elementoperationvisitor visitor;
 	for (int i = 0; i < selectionVoiceList.size(); i++) {
+		printf("About to insert on voice %d\n", startVoice+i);
+		std::cout.flush();
 		OpResult result = visitor.insertRange(score, selectionVoiceList.at(i), startDur, startVoice + i, selectionDur);
 		if (result != OpResult::success) return "ERROR Insert range wasn't a success";
 	}
+	printf("Done doing the actual operation.  About to print..\n");
+	std::cout.flush();
 	
 	// Return string
 	ostringstream oss;
 	score->print(oss);
+	printf("Done printing score\n");
+	std::cout.flush();
 	return getPersistentPointer(oss.str());
 }
 

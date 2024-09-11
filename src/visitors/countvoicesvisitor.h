@@ -22,7 +22,7 @@ namespace guido
 */
 class gar_export countvoicesvisitor : public visitor<SARVoice>
 {
-    public: 
+public: 
 				 countvoicesvisitor() { fBrowser.set(this); }
 		virtual ~countvoicesvisitor() {}
     
@@ -40,10 +40,10 @@ class gar_export countvoicesvisitor : public visitor<SARVoice>
     virtual void visitStart ( SARVoice& elt )   { fCountEnter++; }
 	virtual void visitEnd   ( SARVoice& elt )   { fCountLeave++; }
 
-	protected:
-		tree_browser<guidoelement> fBrowser;
-		int fCountEnter;
-		int	fCountLeave;
+protected:
+	tree_browser<guidoelement> fBrowser;
+	int fCountEnter;
+	int	fCountLeave;
 };
 
 /*! @} */
