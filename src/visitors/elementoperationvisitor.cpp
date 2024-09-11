@@ -218,7 +218,11 @@ OpResult elementoperationvisitor::deleteEvent(const Sguidoelement& score, const 
 }
 
 OpResult elementoperationvisitor::deleteRange (const Sguidoelement& score, const rational& startTime, const rational& endTime, int startVoice, int endVoice) {
+	print("Deleting a range!\n");
 	for (int currVoice = startVoice; currVoice <= endVoice; currVoice++) {
+		print("Deletion for voice ");
+		print(currVoice);
+		print(":\n");
 		fTargetVoice = currVoice;
 		fTargetDate = startTime;
 		fMidiPitch = -1;
@@ -226,13 +230,23 @@ OpResult elementoperationvisitor::deleteRange (const Sguidoelement& score, const
 		init();
 		
 		fBrowser.browse(*score);
+		print("  - Done browsing\n");
 		
 		if (fResultNote == nullptr && fResultChord == nullptr) return OpResult::failure;
+		
+		print("  - Found Note: ");
+		print(fResultNote != nullptr);
+		print("\n  - Found Chord: ");
+		print(fResultChord != nullptr);
+		print("\n");
 		
 		// Assemble list of rests to fill gap with
 		rationals restDursToAdd = rational::getBaseRationals(endTime - startTime);
 		std::vector<Sguidoelement> restsToAdd;
 		for (int i = 0; i < restDursToAdd.size(); i++) {
+			print("   - Planning rest of size ");
+			print(restDursToAdd.at(i));
+			print("\n");
 			SARNote rest = ARFactory().createNote("_");
 			*rest = restDursToAdd.at(i);
 			rest->SetDots(0);
@@ -631,51 +645,60 @@ OpResult elementoperationvisitor::cutScoreAndInsert(SARVoice& voice, Sguidoeleme
 			timeToEat += getRealDuration(newEls.at(i));
 		}
 	}
+	print("Cut Score and Insert Method ------------------------\n");
+	std::cout << "Inserting " << newEls.size() << " elements of total duration " << timeToEat << " into voice\n";
+	std::cout.flush();
 	
 	// TEST CODE: USE VECTOR DIRECTLY - NO ITERATOR
 	std::vector<Sguidoelement> voiceChildren = voice->elements();
 	// Seek to the existing element
-	int currIndex = 0;
-	for ( ; currIndex < voiceChildren.size() && voiceChildren.at(currIndex) != existing; currIndex++);
+	auto it = voice->begin();
+	for ( ; it != voice->end() && (*it) != existing; it.rightShift());
+	if (it == voice->end()) return OpResult::failure;
+	print("Found our start element\n");
 	// Basic setup for later
 	rational zeroR = rational(0, 1);
 	lastDurFound = zeroR;
 	rational implicitDur = ARNote::getImplicitDuration();
-	rational currentDur = getRealDuration(voiceChildren.at(currIndex));
+	rational currentDur = getRealDuration(*it);
 	// Eat full elements until we don't need to any more
 	while (timeToEat >= currentDur) {
-		print("Eating element\n");
-		Sguidoelement el = voiceChildren.at(currIndex);
+		Sguidoelement el = *it;
+		std::cout << "<Eat Loop> TimeToEat: " << timeToEat << " CurrentDur: " << currentDur <<  " El Name: " << el->getName() << "\n";
+		std::cout.flush();
 		if ((el->getName() == "chord" && currentDur == zeroR) || currentDur == implicitDur) {
+			print("Replacing duration with last found..\n");
 			currentDur = lastDurFound;
 		} else if (currentDur == zeroR) {
+			print("Deleting tag that we don't want anymore..\n");
 			// Found a tag. Delete it and move on
-			voiceChildren.erase(voiceChildren.begin() + currIndex);
+			it = voice->erase(it);
 			continue;
 		} else {
 			lastDurFound = currentDur;
 		}
 		if (currentDur == zeroR) {
 			print("Why am I hitting this?\n");
-			currIndex++;
+			it.rightShift();
 		} else {
-			auto it = voice->begin();
-			for (int i = 0; i < currIndex; i++) { it.rightShift(); }
-			voice->erase(it);
+			print("Erasing element..\n");
+			it = voice->erase(it);
 			timeToEat = (timeToEat - currentDur).rationalise();
 		}
-		
-		if (timeToEat == zeroR) break;
-		if (currIndex == voiceChildren.size()) {
+		print("Done with main operations for eating loop\n");
+		if (timeToEat == zeroR) { print("We don't have to eat any more!\n"); break; }
+		if (it == voice->end()) {
+			print("Returning that we need more measures\n");
 			return OpResult::needsMeasureAdded;
 		}
-		
-		currentDur = getRealDuration(voiceChildren.at(currIndex));
+		print("About to pull next duration\n");
+		currentDur = getRealDuration(*it);
 	}
 	
 	if (timeToEat > zeroR) {
+		print("We still need to eat more!\n");
 		// Cut this element's duration by the amount that we still want to eat
-		Sguidoelement el = voiceChildren.at(currIndex);
+		Sguidoelement el = *it;
 		ARChord* isChord = dynamic_cast<ARChord*>(&*el);
 		ARNote* isNote = dynamic_cast<ARNote*>((&*el));
 		if (isChord != nullptr) {
@@ -685,13 +708,33 @@ OpResult elementoperationvisitor::cutScoreAndInsert(SARVoice& voice, Sguidoeleme
 		} else {
 			print("Oh no!  This is neither a note, or a chord!\n");
 		}
+		print("Done eating that last bit!\n");
 	}
 	
-	auto it = voice->begin();
-	for (int i = 0; i < currIndex; i++) { it.rightShift(); }
+	print("Got to the inserting part.\n");
 	for (int i = 0; i < newEls.size(); i++) {
-		voice->insert(it, newEls.at(i));
+		if (it == voice->end()) {
+			// Put rest at end
+			print("Putting rest of the elements at end of score\n");
+			for (int ii = i; ii < newEls.size(); ii++) {
+				print("- Pushing element to end\n");
+				voice->push(newEls.at(ii));
+			}
+			print("Done pushing elements to end\n");
+			break;
+		} else {
+			print("Inserting to location\n");
+			Sguidoelement el = (*it);
+			std::cout << "Element name: " << el->getName() << "\nElement duration: " << getRealDuration(el) << "\n";
+			std::cout.flush();
+			print("- Inserting Element.. ");
+			it = voice->insert(it, newEls.at(i));
+			it.rightShift();
+			print("  .. And we're done.\n");
+		}
 	}
+	
+	print("Done with eat method! (returning success)\n");
 	
 	
 	// Seek to the start element
@@ -800,31 +843,46 @@ void elementoperationvisitor::handleEqualDurationsNoteInsertion(SARNote& noteToA
 }
 // Small casting helper
 static ARNote* castToNote(guido::treeIterator<Sguidoelement> input) {
+	print("Casting to note\n");
 	guidoelement* gotElement = (*input);
+	print("Dereference done in cast to note\n");
 	return (ARNote*)gotElement;
 }
 // TESTED
 static bool deleteNoteFromChord(SARVoice voice, SARChord parent, SARNote child) {
+	rational childDur = getRealDuration(child);
+	rational implicit = ARNote::getImplicitDuration();
 	// If the chord only has two notes right now, we want to get rid of the chord and leave just the
 	// note that we AREN'T deleting left in it's place.
 	if (parent->size() == 2) {
 		// Find other note
-		Sguidoelement noteFound;
+		ARNote* noteFound;
 		for (auto it = parent->begin(); it != parent->end(); it++) {
 			if (child != (*it)) {
-				noteFound = *it;
+				noteFound = castToNote(it);
 				break;
 			}
+		}
+		// Quick check: If the remaining note is implicitly relying on the one we are
+		// 				deleting, transfer that duration over
+		if (getRealDuration(noteFound) == implicit) {
+			*noteFound = childDur;
 		}
 		// Do the actual chord deletion, leaving just the note that wasn't the "child" parameter
 		replaceElementWith(voice, parent, noteFound);
 		return true;
 	} else {
 		// Otherwise, just delete the note from the chord directly
-		for (auto it = parent->begin(); it != parent->end(); it++) {
+		for (auto it = parent->begin(); it != parent->end(); ) {
 			if (child == (*it)) {
 				it = parent->erase(it);
-				break;
+			} else {
+				// And set all other notes' durations to match this one, if they are implicitly relying on it
+				ARNote* casted = castToNote(it);
+				if (getRealDuration(casted) == implicit) {
+					*casted = childDur;
+				}
+				it++;
 			}
 		}
 		return true;

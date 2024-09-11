@@ -116,6 +116,8 @@ char* deleteRange(const char* scoreData, int startNum, int startDen, int endNum,
 	elementoperationvisitor visitor;
 	rational startTime = rational(startNum, startDen);
 	rational endTime = rational(endNum, endDen);
+	std::cout << "Deleting from " << startTime << "-" << endTime << "\n";
+	std::cout.flush();
 	
 	// Run the deleteRange method
 	OpResult result = visitor.deleteRange(score, startTime, endTime, startVoice-1, endVoice-1);
@@ -386,11 +388,6 @@ char* pasteToDuration(const char* scoreData, const char* selectionData, int star
 		guido::extendVisitor extender;
 		score = extender.extend(score, selectionDur + startDur);
 	}
-	
-	printf("\nScore now: \n");
-	score->print(std::cout);
-	printf("\n\n");
-	std::cout.flush();
 	
 	getvoicesvisitor gvv;
 	vector<SARVoice> selectionVoiceList = gvv(selection);
