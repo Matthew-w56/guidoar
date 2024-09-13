@@ -686,22 +686,11 @@ OpResult elementoperationvisitor::cutScoreAndInsert(SARVoice& voice, Sguidoeleme
 			voice->push(newEls.at(i));
 		}
 	} else {
-		// for (int i = newEls.size()-1; i > -1; i--) {  // Testing out this reversal
 		for (int i = 0; i < newEls.size(); i++) {
-			std::cout << "Inserting element with " << newEls.at(i)->elements().size() << " children\n";
-			std::cout.flush();
 			it = voice->insert(it, newEls.at(i));
 			it.rightShift();
 		}
 	}
-	
-	// % an example showing chords (together with text)
-
-// {
-//     [\tie<opened="begin">( { e&1*1/2,  a&1*1/2,  c2*1/2 } ) { f1*1/2,  b&1,  d2 
-//     } { f1*1/2,  b&1,  d2 } { g1*1/2,  c2,  f2 } { a1*1/2,  d2,  g2 } { b&1*1/2,  
-//     d2,  g2 } ]
-// }
 	
 	// Finish the method off with a successful return
 	return OpResult::success;
