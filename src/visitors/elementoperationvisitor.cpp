@@ -309,6 +309,7 @@ void elementoperationvisitor::appendMeasure(const Sguidoelement& score) {
 }
 
 OpResult elementoperationvisitor::setDurationAndDots(const Sguidoelement& score, const rational& time, int voice, rational newDur, int newDots) {
+	// print("Starting setDurationAndDots Method!\n");
 	fTargetVoice = voice;
 	fTargetDate = time;
 	fOpIntent = SetGroupProperties;
@@ -324,17 +325,26 @@ OpResult elementoperationvisitor::setDurationAndDots(const Sguidoelement& score,
 				: fResultChord->GetDots();
 	rational foundDur = fResultChord == nullptr
 				? getRealDuration(fResultNote)
-				: getRealDuration(fResultNote);
+				: getRealDuration(fResultChord);
+	
+	// print("Found element with dur: ");
+	// print(foundDur);
+	// print("\n");
+	
 	// Cast duration or dots to found note if left blank by caller
 	if (newDur == rational(0, 1)) newDur = foundDurPlain;
 	if (newDots == -1) newDots = foundDotsPlain;
-	rational desiredDur = ARFactory().createNote("_")
+	rational desiredDur = ARFactory().createNote("e")
 				->totalduration(newDur, newDots);
+	// print("We want a duration of ");
+	// print(desiredDur);
+	// print("\n");
 	
 	// We don't need to do anything if the desired duration matches current
 	if (foundDur == desiredDur) return OpResult::noActionTaken;
 	
 	if (desiredDur > foundDur) {
+		// print("Time to cut the score ahead of us!\n");
 		// We need to cut out some of the score in front of us if the desired is longer
 		// Strategy: Remove the original element as well as the notes infront of it that
 		//			 block the way, and then insert a new copy of the original element that
@@ -355,6 +365,7 @@ OpResult elementoperationvisitor::setDurationAndDots(const Sguidoelement& score,
 			cutScoreAndInsert(fResultVoice, fResultNote, wrapper);
 		}
 	} else /*if (desiredDur < foundDur)*/ {
+		// print("We need to fill this gap with rests!\n");
 		// Here, we need to shorted the current element, and then insert the rests needed to
 		// fill the gap we created.
 		if (fResultChord != nullptr) {
@@ -364,10 +375,13 @@ OpResult elementoperationvisitor::setDurationAndDots(const Sguidoelement& score,
 			*fResultNote = newDur;
 			fResultNote->SetDots(newDots);
 		}
+		// print("Done setting original element's duration");
 		// Find gap length
 		rational gapLength = foundDur - desiredDur;
-		std::vector<int> dotsOutput;
-		rationals restsToCreate = rational::getBaseRationals(gapLength, true, &dotsOutput);
+		// print("Gap length to fill: ");
+		// print(gapLength);
+		// print("\n");
+		rationals restsToCreate = rational::getBaseRationals(gapLength, false);
 		auto it = fResultVoice->begin();
 		// Seek to find our spot
 		while ((*it) != fResultChord && (*it) != fResultNote && it != fResultVoice->end()) { it++; }
@@ -375,20 +389,30 @@ OpResult elementoperationvisitor::setDurationAndDots(const Sguidoelement& score,
 		if (it == fResultVoice->end()) return OpResult::failure;
 		
 		// Insert the rests
-		it++;
-		if (fResultChord != nullptr) {
-			for (int i = 0; i < fResultChord->notes().size(); i++) {
-				if (it == fResultVoice->end()) break;
-				it++;
-			}
-		}
+		it.rightShift();
+		// THIS IS THE OLD CODE TO IMITATE RIGHT SHIFT
+		// it++;
+		// if (fResultChord != nullptr) {
+		// 	for (int i = 0; i < fResultChord->notes().size(); i++) {
+		// 		if (it == fResultVoice->end()) break;
+		// 		it++;
+		// 	}
+		// }
+		bool atEndOfVoice = it == fResultVoice->end();
 		for (int i = 0; i < restsToCreate.size(); i++) {
 			SARNote rest = ARFactory().createNote("_");
 			*rest = restsToCreate.at(i);
-			rest->SetDots(dotsOutput.at(i));
-			//fResultVoice->insert(it, rest);
-			it->insert(it, rest);
+			rest->SetDots(0);
+			// print("Inserting rest of length ");
+			// print(restsToCreate.at(i));
+			// print("\n");
+			if (atEndOfVoice) {
+				fResultVoice->push(rest);
+			} else {
+				it = it->insert(it, rest);
+			}
 		}
+		// print("Done inserting rests!\n");
 	}
 	// We're done, return success
 	return OpResult::success;
@@ -456,7 +480,7 @@ OpResult elementoperationvisitor::shiftNotePitch(const Sguidoelement& score, con
 	}
 }
 
-OpResult elementoperationvisitor::shiftRangeNotePitch(const Sguidoelement& score, const rational& startTime, const rational& endTime, int startVoice, int endVoice, int pitchShiftDirection) {
+OpResult elementoperationvisitor::shiftRangeNotePitch(const Sguidoelement& score, const rational& startTime, const rational& endTime, int startVoice, int endVoice, int pitchShiftDirection, int octaveShift) {
 	rational rangeLength = endTime - startTime;
 	for (int currVoice = startVoice; currVoice <= endVoice; currVoice++) {
 		fTargetVoice = currVoice;
@@ -467,7 +491,25 @@ OpResult elementoperationvisitor::shiftRangeNotePitch(const Sguidoelement& score
 		
 		fBrowser.browse(*score);
 		
+		Sguidoelement target = fResultChord;
+		if (target == nullptr) {
+			target = fResultNote;
+		}
+		
+		OpResult result;
+		if (octaveShift != 0) {
+			result = shiftRangeMidiPitchBy(
+				fResultVoice,
+				fResultChord,
+				rangeLength,
+				pitchShiftDirection,
+				fCurrentKeySignature,
+				octaveShift
+			);
+		}
+		
 		if (fResultChord != nullptr) {
+			
 			OpResult result = shiftRangeMidiPitchBy(
 				fResultVoice,
 				fResultChord,
@@ -541,8 +583,20 @@ static void setNoteToMidiPitch(SARNote note, int pitch, int keySig) {
 	note->SetAccidental(accidental);
 }
 
-static void shiftNoteMidiPitchBy(SARNote note, int currentPitch, int pitchShiftDirection, int keySig) {
-	if (pitchShiftDirection == 0) return;
+static void shiftNotePitchOctave(SARNote note, int octaveDiff) {
+	int octave = note->GetOctave();
+	note->SetOctave(octave + octaveDiff);
+}
+
+static void shiftNoteMidiPitchBy(SARNote note, int currentPitch, int pitchShiftDirection, int keySig, int octaveShift) {
+	if (pitchShiftDirection == 0 && octaveShift == 0) return;
+	
+	// Only shift octave if that's what we want.
+	if (octaveShift != 0) {
+		shiftNotePitchOctave(note, octaveShift);
+		return;
+	}
+	// Otherwise, prep to shift pitch
 	
 	// Steps:
 	//	- Take the note (by midi pitch), and make it natural (remove accidentals)
@@ -570,15 +624,15 @@ static void shiftNoteMidiPitchBy(SARNote note, int currentPitch, int pitchShiftD
 	setNoteToMidiPitch(note, newPitch, keySig);
 }
 
-static void shiftChordMidiPitchBy(ARChord* chord, int pitchShiftDirection, int keySig) {
+static void shiftChordMidiPitchBy(ARChord* chord, int pitchShiftDirection, int keySig, int octaveShift) {
 	for (int i = 0; i < chord->notes().size(); i++) {
 		SARNote note = chord->notes().at(i);
 		int octave = note->GetOctave();
-		shiftNoteMidiPitchBy(note, note->midiPitch(octave), pitchShiftDirection, keySig);
+		shiftNoteMidiPitchBy(note, note->midiPitch(octave), pitchShiftDirection, keySig, octaveShift);
 	}
 }
 
-static OpResult shiftRangeMidiPitchBy(SARVoice voice, Sguidoelement startEl, rational rangeLength, int pitchShiftDirection, int keySig) {
+static OpResult shiftRangeMidiPitchBy(SARVoice voice, Sguidoelement startEl, rational rangeLength, int pitchShiftDirection, int keySig, int octaveShift) {
 	
 	// Seek to the start element in the voice
 	auto it = voice->begin();
@@ -605,11 +659,11 @@ static OpResult shiftRangeMidiPitchBy(SARVoice voice, Sguidoelement startEl, rat
 		ARChord* isChord = dynamic_cast<ARChord*>((&**it));
 		ARNote* isNote = dynamic_cast<ARNote*>((&**it));
 		if (isChord) {
-			shiftChordMidiPitchBy(isChord, pitchShiftDirection, keySig);
+			shiftChordMidiPitchBy(isChord, pitchShiftDirection, keySig, octaveShift);
 			rangeLengthLeft -= currentDur;
-		} else if (isNote) {
+		} else if (isNote && isNote->getName() != "_") { // Exclude rests; moving them causes a crash
 			int octave = isNote->GetOctave();
-			shiftNoteMidiPitchBy(isNote, isNote->midiPitch(octave), pitchShiftDirection, keySig);
+			shiftNoteMidiPitchBy(isNote, isNote->midiPitch(octave), pitchShiftDirection, keySig, octaveShift);
 			rangeLengthLeft -= currentDur;
 		}
 		
@@ -622,7 +676,8 @@ static OpResult shiftRangeMidiPitchBy(SARVoice voice, Sguidoelement startEl, rat
 	return OpResult::success;
 }
 
-OpResult elementoperationvisitor::cutScoreAndInsert(SARVoice& voice, Sguidoelement existing, std::vector<Sguidoelement> newEls, rational insertListDur) { 
+OpResult elementoperationvisitor::cutScoreAndInsert(SARVoice& voice, Sguidoelement existing, std::vector<Sguidoelement> newEls, rational insertListDur) {
+	// print("Starting cutScoreAndInsert Method!\n");
 	// The amount of time we want to eat out of the score
 	rational timeToEat = insertListDur;
 	if (timeToEat == rational(-1, 1)) {
@@ -631,11 +686,16 @@ OpResult elementoperationvisitor::cutScoreAndInsert(SARVoice& voice, Sguidoeleme
 			timeToEat += getRealDuration(newEls.at(i));
 		}
 	}
+	// print("Cutting Score and Inserting!\nTime to Eat: ");
+	// print(timeToEat);
+	// print("\n");
 	
 	// Seek to the existing element
 	auto it = voice->begin();
 	for ( ; it != voice->end() && (*it) != existing; it.rightShift());
 	if (it == voice->end()) return OpResult::failure;
+	
+	// print("Got to desired start element\n");
 	
 	// Basic setup for later
 	rational zeroR = rational(0, 1);
@@ -645,6 +705,11 @@ OpResult elementoperationvisitor::cutScoreAndInsert(SARVoice& voice, Sguidoeleme
 	
 	// Eat full elements until we don't need to any more
 	while (timeToEat >= currentDur) {
+		// print("Eating Element\n - Time To Eat: ");
+		// print(timeToEat);
+		// print("\n - Element Dur: ");
+		// print(currentDur);
+		// print("\n");
 		// If this note doesn't have a duration, default to the last one we saw.
 		// If it does, save that duration for when we see one that doesn't.
 		if (((*it)->getName() == "chord" && currentDur == zeroR) || currentDur == implicitDur) {
@@ -656,6 +721,9 @@ OpResult elementoperationvisitor::cutScoreAndInsert(SARVoice& voice, Sguidoeleme
 		} else {
 			lastDurFound = currentDur;
 		}
+		// print(" - Adjusted dur: ");
+		// print(currentDur);
+		// print("\n");
 		
 		// Eat the element and subtract its duration from timeToEat
 		it = voice->erase(it);
@@ -666,9 +734,11 @@ OpResult elementoperationvisitor::cutScoreAndInsert(SARVoice& voice, Sguidoeleme
 		if (it == voice->end()) return OpResult::needsMeasureAdded;
 		currentDur = getRealDuration(*it);
 	}
+	// print("Done eating elements..\n");
 	
 	// If we want to eat just part of this last element
 	if (timeToEat > zeroR) {
+		// print("Wait, just part of this last one\n");
 		// Cut this element's duration by the amount that we still want to eat
 		ARChord* isChord = dynamic_cast<ARChord*>(&**it);
 		ARNote* isNote = dynamic_cast<ARNote*>((&**it));
@@ -677,20 +747,25 @@ OpResult elementoperationvisitor::cutScoreAndInsert(SARVoice& voice, Sguidoeleme
 		} else if (isNote != nullptr) {
 			breakNoteTo(fResultVoice, isNote, timeToEat);
 		}
+		// print("Done eating part of that last one\n");
 	}
 	
+	// print("Inserting elements now\n");
 	// Now actually insert the new elements that we wanted to insert
 	if (it == voice->end()) {
+		// print("It IS voice end\n");
 		// If this wasn't reversed, the notes would appear reversed
 		for (int i = newEls.size()-1; i > -1; i--) {
 			voice->push(newEls.at(i));
 		}
 	} else {
+		// print("It ISN'T voice end\n");
 		for (int i = 0; i < newEls.size(); i++) {
 			it = voice->insert(it, newEls.at(i));
 			it.rightShift();
 		}
 	}
+	// print("Done inserting elements");
 	
 	// Finish the method off with a successful return
 	return OpResult::success;

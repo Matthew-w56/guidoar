@@ -64,8 +64,8 @@ gar_export char* setDurationAndDots(const char* scoreData, int elStartNum, int e
 
 gar_export char* setAccidental(const char* scoreData, int elStartNum, int elStartDen, int voice, int midiPitch, int newAccidental, int* resultPitch);
 gar_export char* setNotePitch(const char* scoreData, int elStartNum, int elStartDen, int voice, int oldPitch, int newPitch);
-gar_export char* shiftNotePitch(const char* scoreData, int elStartNum, int elStartDen, int voice, int midiPitch, int pitchShiftDirection, int* resultPitch);
-gar_export char* shiftRangeNotePitch(const char* scoreData, int startNum, int startDen, int endNum, int endDen, int startVoice, int endVoice, int pitchShiftDirection);
+gar_export char* shiftNotePitch(const char* scoreData, int elStartNum, int elStartDen, int voice, int midiPitch, int pitchShiftDirection, int octaveShift, int* resultPitch);
+gar_export char* shiftRangeNotePitch(const char* scoreData, int startNum, int startDen, int endNum, int endDen, int startVoice, int endVoice, int pitchShiftDirection, int octaveShift);
 
 gar_export char* getSelection(const char* scoreData, int startNum, int startDen, int endNum, int endDen, int startVoice, int endVoice);
 gar_export char* pasteToDuration(const char* scoreData, const char* selectionData, int startNum, int startDen, int startVoice);

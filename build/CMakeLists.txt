@@ -16,10 +16,13 @@ set (BINDIR ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 set (LIBDIR ${CMAKE_CURRENT_SOURCE_DIR}/lib)
 get_filename_component(ROOT ${CMAKE_CURRENT_SOURCE_DIR} DIRECTORY)
 
-set (CMAKE_BUILD_TYPE Debug)
+set (CMAKE_BUILD_TYPE Release)
  
 if(UNIX)
 	add_definitions(-Wall -DGCC)
+endif()
+if(WIN32)
+	set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 endif()
 
 set (CMAKE_CXX_STANDARD 11)
@@ -148,6 +151,7 @@ else()
 	)
 endif()
 
+string(STRIP ${LINK} LINK)
 target_link_libraries( ${target} ${LINK})
 set_target_properties( ${target} PROPERTIES 
 		ARCHIVE_OUTPUT_DIRECTORY ${LIBDIR}
@@ -178,6 +182,12 @@ if(${USEMidiShare})
 endif()
 endif()
 
+####################################
+# install VS redistributables
+if (MSVC)
+  message (STATUS "Doing the system include stuff")
+  include (InstallRequiredSystemLibraries)
+endif()
 
 if(NOT IOS)
 #######################################

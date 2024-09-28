@@ -256,7 +256,7 @@ char* setNotePitch(const char* scoreData, int elStartNum, int elStartDen, int vo
 	return getPersistentPointer(oss.str());
 }
 
-char* shiftNotePitch(const char* scoreData, int elStartNum, int elStartDen, int voice, int midiPitch, int pitchShiftDirection, int* resultPitch) {
+char* shiftNotePitch(const char* scoreData, int elStartNum, int elStartDen, int voice, int midiPitch, int pitchShiftDirection, int octaveShift, int* resultPitch) {
 	if (elStartDen == 0) return "ERROR Start Duration denominator cannot be zero!";
 	if (voice < 0) return "ERROR Voice cannot be < 0!";
 	
@@ -285,7 +285,7 @@ char* shiftNotePitch(const char* scoreData, int elStartNum, int elStartDen, int 
 	return getPersistentPointer(oss.str());
 }
 
-char* shiftRangeNotePitch(const char* scoreData, int startNum, int startDen, int endNum, int endDen, int startVoice, int endVoice, int pitchShiftDirection) {
+char* shiftRangeNotePitch(const char* scoreData, int startNum, int startDen, int endNum, int endDen, int startVoice, int endVoice, int pitchShiftDirection, int octaveShift) {
 	if (startDen == 0 || endDen == 0) return "ERROR Duration denominators cannot be zero!";
 	if (startVoice < 0 || endVoice < 0) return "ERROR Voices cannot be < 0!";
 	
@@ -310,7 +310,8 @@ char* shiftRangeNotePitch(const char* scoreData, int startNum, int startDen, int
 		endTime,
 		startVoice-1,
 		endVoice-1,
-		pitchShiftDirection
+		pitchShiftDirection,
+		octaveShift
 	);
 	ostringstream oss;
 	
