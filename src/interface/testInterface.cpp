@@ -546,11 +546,24 @@ char* deleteVoice(const char* scoreData, int voiceToDelete) {
 	return getPersistentPointer(oss.str());
 }
 
-char* setVoiceInitClef(const char* scoreData, const char* initClef) {
-	return "ERROR unimplemented";
-}
-
-char* setVoiceInitInstrument(const char* scoreData, const char* instrumentName, int instrumentCode) {
-	return "ERROR unimplemented";
+char* setVoiceInitInstrument(const char* scoreData, int voice, const char* instrumentName, int instrumentCode) {
+	Sguidoelement score = read(scoreData);
+	if (!score) {
+		return "ERROR Could not parse score data! (No action performed)";
+	}
+	
+	elementoperationvisitor visitor;
+	OpResult result = visitor.setVoiceInstrument(score, voice-1, instrumentName, instrumentCode);
+	
+	if (result != OpResult::success) {
+		ostringstream oss;
+		oss << "ERROR Could not set voice instrument!  Error code: " << result;
+		return getPersistentPointer(oss.str());
+	}
+	
+	// Otherwise, return success!
+	ostringstream oss;
+	score->print(oss);
+	return getPersistentPointer(oss.str());
 }
 

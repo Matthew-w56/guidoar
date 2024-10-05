@@ -487,7 +487,57 @@ OpResult elementoperationvisitor::setVoiceInstrument(const Sguidoelement& score,
 	// Start off by finding the first note in the score, and seeing if that voice had an isntrument already
 	findResultVoiceChordNote(score, rational(0, 1), voice, -1);
 	
+	if (fCurrentInstrument) {
+		// Change the existing tag's attributes to match desired instrument
+		auto attrs = fCurrentInstrument->attributes();
+		bool setName = false;
+		bool setCode = false;
+		for (int a = 0; a < attrs.size(); a++) {
+			auto attr = attrs.at(a);
+			if (attr->getName() == "" || attr->getName() == "name") {
+				attr->setValue(std::string(instrName));
+				attr->setQuoteVal(true);
+				setName = true;
+			} else if (attr->getName() == "MIDI") {
+				attr->setValue(0L + instrCode);
+				setCode = true;
+			}
+		}
+		// If existing attributes didn't exist to modify, add new ones
+		if (!setName) {
+			auto nameAttr = guidoattribute::create();
+			nameAttr->setName("name");
+			nameAttr->setValue(std::string(instrName));
+			nameAttr->setQuoteVal(true);
+			fCurrentInstrument->add(nameAttr);
+		}
+		if (!setCode) {
+			auto codeAttr = guidoattribute::create();
+			codeAttr->setName("MIDI");
+			codeAttr->setValue(0L + instrCode);
+			fCurrentInstrument->add(codeAttr);
+		}
+	} else {
+		// Create a new tag to describe instrument desired
+		Sguidotag instrTag = ARFactory().createTag("instr");
+		auto nameAttr = guidoattribute::create();
+		nameAttr->setName("name");
+		nameAttr->setValue(std::string(instrName));
+		nameAttr->setQuoteVal(true);
+		instrTag->add(nameAttr);
+		auto codeAttr = guidoattribute::create();
+		codeAttr->setName("MIDI");
+		codeAttr->setValue(0L + instrCode);
+		instrTag->add(codeAttr);
+		auto doAutoPos = guidoattribute::create();
+		doAutoPos->setName("autopos");
+		doAutoPos->setValue("true");
+		doAutoPos->setQuoteVal(true);
+		// Place tag inside of voice
+		fResultVoice->insert(fResultVoice->begin(), instrTag);
+	}
 	
+	return OpResult::success;
 }
 
 // ---------------------------[ End Public Methods ]------------------------------------
@@ -1047,6 +1097,7 @@ void elementoperationvisitor::init() {
 	fInChord = false;
 	fCurrentKeySignature = 0;
 	fCurrentMeter = "";
+	fCurrentInstrument = nullptr;
 	fDone = false;
 	fResultVoice = nullptr;
 	fResultChord = nullptr;

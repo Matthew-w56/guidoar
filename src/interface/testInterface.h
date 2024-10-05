@@ -83,8 +83,7 @@ gar_export char* pasteToDuration(const char* scoreData, const char* selectionDat
 gar_export VoiceInfo* getVoicesInfo(const char* scoreData, int* voiceCountOut);
 gar_export char* addBlankVoice(const char* scoreData);
 gar_export char* deleteVoice(const char* scoreData, int voiceToDelete);
-gar_export char* setVoiceInitClef(const char* scoreData, const char* initClef);
-gar_export char* setVoiceInitInstrument(const char* scoreData, const char* instrumentName, int instrumentCode);
+gar_export char* setVoiceInitInstrument(const char* scoreData, int voice, const char* instrumentName, int instrumentCode);
 
 #ifdef __cplusplus
 }
