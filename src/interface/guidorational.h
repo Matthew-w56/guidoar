@@ -111,7 +111,7 @@ class gar_export rational {
 		
 		static std::vector<rational> getBaseRationals(rational input, bool useDot = false, std::vector<int>* dotsOutput = nullptr) {
 			// If they want dots, they must supply somewhere for them to go
-			if (useDot && dotsOutput == nullptr) {
+			if (useDot && !dotsOutput) {
 				printf("Cannot output dots with nullptr!  Pass in dotsOutput (3rd parameter)!\n");
 				std::cout.flush();
 				return std::vector<rational>();
@@ -130,7 +130,7 @@ class gar_export rational {
 				while (input >= rational(1, currDen)) {
 					input -= rational(1, currDen);
 					output.push_back( rational(1, currDen) );
-					if (dotsOutput != nullptr) dotsOutput->push_back(0);
+					if (dotsOutput) dotsOutput->push_back(0);
 				}
 				currDen *= 2;
 			}

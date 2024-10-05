@@ -33,10 +33,6 @@ namespace guido
 @{
 */
 
-enum OpIntent {
-	InsertNote, DeleteEvent, AddMeasure, SetElementProperties, SetGroupProperties, DeleteRange, InsertRange
-};
-
 struct NewNoteInfo {
 	int voice,
 		midiPitch,
@@ -66,15 +62,13 @@ class gar_export elementoperationvisitor :
 		OpResult	insertNote	  (const Sguidoelement& score, NewNoteInfo noteInfo);
 		OpResult  	insertRange	  (const Sguidoelement& score, SARVoice elsToAdd, rational startTime, int voice, rational insertListDur);
 		
-		// Methods to adjust score as a whole
-		void		appendMeasure (const Sguidoelement& score);
-		
 		// Methods that adjust existing elements
 		OpResult	setDurationAndDots(const Sguidoelement& score, const rational& time, int voice, rational newDur, int newDots);
 		OpResult	setAccidental(const Sguidoelement& score, const rational& time, int voice, int midiPitch, int newAccidental, int* resultPitch);
 		OpResult 	setNotePitch(const Sguidoelement& score, const rational& time, int voice, int oldPitch, int newPitch);
+		OpResult 	shiftNotePitch(const Sguidoelement& score, const rational& time, int voice, int midiPitch, int pitchShiftDirection, int octaveShift, int* resultPitch);
 		OpResult	shiftRangeNotePitch(const Sguidoelement& score, const rational& startTime, const rational& endTime, int startVoice, int endVoice, int pitchShiftDirection, int octaveShift);
-		OpResult 	shiftNotePitch(const Sguidoelement& score, const rational& time, int voice, int midiPitch, int pitchShiftDirection, int* resultPitch);
+		OpResult	setVoiceInstrument(const Sguidoelement& score, int voice, const char* instrName, int instrCode);
 		
 		
 		bool done();
@@ -91,7 +85,7 @@ class gar_export elementoperationvisitor :
 		
 	protected:
 	
-		void 		handleEqualDurationsNoteInsertion(SARNote& noteToAdd);
+		void 		findResultVoiceChordNote(const Sguidoelement& score, rational time, int voice, int midiPitch);
 		OpResult 	cutScoreAndInsert(SARVoice& voice, Sguidoelement existing, std::vector<Sguidoelement> newEls);
 		/*! \brief Takes in a list of new elements to insert into the score (and the time to start adding them
 				at), and removes existing elements that take up that space so that the score remains the
@@ -103,23 +97,24 @@ class gar_export elementoperationvisitor :
 		*/
 		OpResult 	cutScoreAndInsert(SARVoice& voice, Sguidoelement existing, std::vector<Sguidoelement> newEls, rational insertListDur);
 	
-			// These represent what we are looking for
+		// These represent what we are looking for
 		rational		fTargetDate;
 		unsigned int	fTargetVoice;
-		int				fMidiPitch;
-			// These represent the current state of the browsing
+		int				fTargetMidiPitch;
+		// These represent the current state of the browsing
 		unsigned int	fCurrentVoiceNum;
 		SARVoice		fCurrentVoiceRef;
 		SARChord		fCurrentChordRef;
 		int				fCurrentKeySignature = 0;
 		std::string		fCurrentMeter = "";
+		Sguidotag		fCurrentInstrument;
 		bool			fDone;
-			// These represent data that comes from the public methods
-		OpIntent		fOpIntent;
 		// Used to return results from a browse to an edit method
 		SARVoice		fResultVoice;
 		SARChord		fResultChord;
 		SARNote			fResultNote;
+		bool			fFoundNote;
+		bool			fFoundChord;
 		
 };
 

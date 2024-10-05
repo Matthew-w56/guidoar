@@ -7,6 +7,14 @@
 extern "C" {
 #endif
 
+struct vinforaw{
+	int voiceNum,
+		initInstrCode;
+	const char* initClef,
+				*initInstrName;
+};
+typedef struct vinforaw VoiceInfo;
+
 #include "arexport.h"
 
 /*! \brief Deletes an event that starts at the given duration in the form num/den, on the given voice.
@@ -69,6 +77,14 @@ gar_export char* shiftRangeNotePitch(const char* scoreData, int startNum, int st
 
 gar_export char* getSelection(const char* scoreData, int startNum, int startDen, int endNum, int endDen, int startVoice, int endVoice);
 gar_export char* pasteToDuration(const char* scoreData, const char* selectionData, int startNum, int startDen, int startVoice);
+
+// Voice Operations and Queries
+
+gar_export VoiceInfo* getVoicesInfo(const char* scoreData, int* voiceCountOut);
+gar_export char* addBlankVoice(const char* scoreData);
+gar_export char* deleteVoice(const char* scoreData, int voiceToDelete);
+gar_export char* setVoiceInitClef(const char* scoreData, const char* initClef);
+gar_export char* setVoiceInitInstrument(const char* scoreData, const char* instrumentName, int instrumentCode);
 
 #ifdef __cplusplus
 }

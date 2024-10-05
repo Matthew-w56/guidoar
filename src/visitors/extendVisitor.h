@@ -10,6 +10,9 @@
 #include "tree_browser.h"
 #include "visitor.h"
 
+#define PRINT(s) std::cout << s << "\n" << std::flush
+#define PRINTW(s, n) std::cout << s << n << std::endl << std::flush
+
 namespace guido 
 {
 
@@ -45,17 +48,23 @@ public:
 		return score;
 	}
 	
-	virtual void visitStart( SARVoice& elt  ) { fCurrentMeter = 1; }
-	virtual void visitStart( Sguidotag& elt ) { if (elt->getName() == "meter") fCurrentMeter = elt->attributes().at(0)->getValue(); }
+	virtual void visitStart( SARVoice& elt  ) { fCurrentMeter = "1/1"; }
+	virtual void visitStart( Sguidotag& elt ) {
+		// printAttributes(elt);
+		if (elt->getType() == kTMeter) {
+			fCurrentMeter = elt->attributes().at(0)->getValue();
+			if (fCurrentMeter == "c" || fCurrentMeter == "c/") {
+				fCurrentMeter = "1/1";
+			}
+		}
+	}
 	virtual void visitEnd  ( SARVoice& elt  ) {
 		rational durAdded = rational(0, 1);
 		rational currentMeterDur = rational(fCurrentMeter);
 		while (durAdded < fDurToFill) {
 			rational restDur = currentMeterDur;
 			restDur = restDur.rationalise();
-			std::vector<int> dotsOut;
 			rationals brokenDownDurs = rational::getBaseRationals(restDur, false, nullptr);
-			
 			for (int i = 0; i < brokenDownDurs.size(); i++) {
 				SARNote rest = ARFactory().createNote("_");
 				*rest = brokenDownDurs.at(i);
@@ -74,6 +83,17 @@ public:
 	int			fMeasuresToAdd;
 	
 	tree_browser<guidoelement> fBrowser;
+	
+	void printAttributes(Sguidotag& elt) {
+		PRINT("Printing Element Attributes:------------------");
+		auto attrs = elt->attributes();
+		for (int i = 0; i < attrs.size(); i++) {
+			PRINT("Element Attribute:");
+			PRINTW("  - Name:  ", attrs.at(i)->getName());
+			PRINTW("  - Value: ", attrs.at(i)->getValue());
+		}
+		PRINT("----------------------------------------------");
+	}
 		
 };
 

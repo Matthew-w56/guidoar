@@ -20,6 +20,9 @@
 #include "seqOperation.h"
 #include "getvoicesvisitor.h"
 #include "extendVisitor.h"
+#include "tagvisitor.h"
+#include "parOperation.h"
+#include "removevoiceOperation.h"
 
 using std::cout;
 using std::vector;
@@ -43,6 +46,14 @@ using guido::seqOperation;
 using guido::getvoicesvisitor;
 using guido::SARVoice;
 using guido::extendVisitor;
+using guido::tagvisitor;
+using guido::parOperation;
+using guido::ARMusic;
+using guido::guidoattribute;
+
+#define PRINT(s) std::cout << s << "\n" << std::flush;
+
+static double lastAccoladeId = 91;
 
 // ------------------------------------[ Helper Methods (public methods below) ]-----------------------------------------
 rational doubleToRational(double input) {
@@ -271,7 +282,7 @@ char* shiftNotePitch(const char* scoreData, int elStartNum, int elStartDen, int 
 	
 	elementoperationvisitor visitor;
 	
-	OpResult result = visitor.shiftNotePitch(score, rational(elStartNum, elStartDen), voice-1, midiPitch, pitchShiftDirection, resultPitch);
+	OpResult result = visitor.shiftNotePitch(score, rational(elStartNum, elStartDen), voice-1, midiPitch, pitchShiftDirection, octaveShift, resultPitch);
 	ostringstream oss;
 	
 	// If an error happened, return info about what it was
@@ -431,3 +442,115 @@ char* pasteToDuration(const char* scoreData, const char* selectionData, int star
 	score->print(oss);
 	return getPersistentPointer(oss.str());
 }
+
+VoiceInfo* getVoicesInfo(const char* scoreData, int* voiceCountOut) {
+	Sguidoelement score = read(scoreData);
+	if (!score) {
+		*voiceCountOut = 0;
+		return nullptr;
+	}
+	
+	getvoicesvisitor gvv;
+	tagvisitor tv;
+	vector<SARVoice> voices = gvv(score);
+	const int vals = voices.size();
+	std::vector<VoiceInfo> outList;
+	for (int i = 0; i < voices.size(); i++) {
+		guido::VoiceInitInfo vInfo = tv.getVoiceInfo(voices.at(i));
+		VoiceInfo info;
+		// TODO: FINISH THIS AND RETURN HELPFUL INFORMATION
+		// info.initClef = vInfo.clef;
+		// info.initInstrName = vInfo.instrumentName;
+		// info.initInstrCode = vInfo.instrumentCode;
+		info.voiceNum = i+1;
+		outList.push_back(info);
+	}
+	// Output the information
+	*voiceCountOut = outList.size();
+	if (*voiceCountOut == 0) return nullptr;
+	return &outList.at(0);
+}
+
+char* addBlankVoice(const char* scoreData) {
+	SARMusic score = read(scoreData);
+	if (!score) {
+		return "ERROR Could not parse score data! (No action performed)";
+	}
+	
+	// Get score length
+	durationvisitor dvis;
+	rational scoreDur = dvis.duration(score);
+	// Get the voices
+	getvoicesvisitor gvv;
+	vector<SARVoice> voices = gvv(score);
+	if (voices.size() == 0) return "ERROR Score has no voices!";
+	// Get the information about the reference voice
+	SARVoice reference = voices.at(voices.size()-1);
+	tagvisitor tv;
+	guido::VoiceInitInfo vInfo = tv.getVoiceInfo(reference);
+	// Create blank voice to use
+	SARVoice newVoice = ARFactory().createVoice();
+	// Make this new voice a system of itself (Accolade)
+	guido::Sguidotag tag = ARFactory().createTag("accol");
+	guido::Sguidoattribute id_attr = guidoattribute::create();
+	id_attr->setName(std::string("id"));
+	id_attr->setValue(lastAccoladeId);
+	guido::Sguidoattribute range_attr = guidoattribute::create();
+	range_attr->setName("range");
+	range_attr->setValue(lastAccoladeId);
+	range_attr->setQuoteVal(true);
+	guido::Sguidotag barFormat_tag = ARFactory().createTag("barFormat");
+	guido::Sguidoattribute bfAttr = guidoattribute::create();
+	bfAttr->setValue("system");
+	tag->add(id_attr);
+	tag->add(range_attr);
+	barFormat_tag->add(bfAttr);
+	newVoice->push(tag);
+	newVoice->push(barFormat_tag);
+	lastAccoladeId += 1;
+	// Insert the Target's clef, key signature, meter, and instrument
+	if (vInfo.instr) newVoice->push(vInfo.instr);
+	if (vInfo.clef) newVoice->push(vInfo.clef);
+	else newVoice->push(ARFactory().createTag("clef"));
+	if (vInfo.keySignature) newVoice->push(vInfo.keySignature);
+	if (vInfo.meter) newVoice->push(vInfo.meter);
+	// Pass Target to extend visitor
+	extendVisitor extV;
+	Sguidoelement extendedVoice = extV.extend(newVoice, scoreDur);
+	// Push Target to score
+	score->push(extendedVoice);
+	
+	ostringstream oss;
+	score->print(oss);
+	return getPersistentPointer(oss.str());
+}
+
+char* deleteVoice(const char* scoreData, int voiceToDelete) {
+	Sguidoelement score = read(scoreData);
+	if (!score) {
+		return "ERROR Could not parse score data! (No action performed)";
+	}
+	
+	countvoicesvisitor cvv;
+	int count = cvv.count(score);
+	if (count == 1) {
+		return "ERROR Cannot delete the last voice!";
+	}
+	
+	guido::removeVoiceOperation rvo;
+	score = rvo(score, voiceToDelete);
+	
+	// Return string
+	ostringstream oss;
+	score->print(oss);
+	return getPersistentPointer(oss.str());
+}
+
+char* setVoiceInitClef(const char* scoreData, const char* initClef) {
+	return "ERROR unimplemented";
+}
+
+char* setVoiceInitInstrument(const char* scoreData, const char* instrumentName, int instrumentCode) {
+	return "ERROR unimplemented";
+}
+
