@@ -23,6 +23,8 @@
 #include "tagvisitor.h"
 #include "parOperation.h"
 #include "removevoiceOperation.h"
+#include "transposeOperation.h"
+#include "guidoelement.h"
 
 using std::cout;
 using std::vector;
@@ -458,12 +460,23 @@ VoiceInfo* getVoicesInfo(const char* scoreData, int* voiceCountOut) {
 	for (int i = 0; i < voices.size(); i++) {
 		guido::VoiceInitInfo vInfo = tv.getVoiceInfo(voices.at(i));
 		VoiceInfo info;
-		// TODO: FINISH THIS AND RETURN HELPFUL INFORMATION
-		// info.initClef = vInfo.clef;
-		// info.initInstrName = vInfo.instrumentName;
-		// info.initInstrCode = vInfo.instrumentCode;
-		info.voiceNum = i+1;
+		if (vInfo.clef) {
+			info.initClef = getPersistentPointer(vInfo.clef->getAttributeValue(0).c_str());
+		} else {
+			info.initClef = "none";
+		}
+		
+		guido::Sguidoattribute instrCodeAttr = vInfo.instr->getAttribute("MIDI");
+		info.initInstrCode = -1;
+		if (instrCodeAttr) { info.initInstrCode = stoi(instrCodeAttr->getValue()); }
+		guido::Sguidoattribute instrNameAttr = vInfo.instr->getAttribute("name");
+		if (instrNameAttr) {
+			info.initInstrName = getPersistentPointer(instrNameAttr->getValue());
+		} else {
+			info.initInstrName = getPersistentPointer(vInfo.instr->getAttributeValue(0));
+		}
 		outList.push_back(info);
+		PRINT("Added voice info object to list");
 	}
 	// Output the information
 	*voiceCountOut = outList.size();
@@ -567,3 +580,21 @@ char* setVoiceInitInstrument(const char* scoreData, int voice, const char* instr
 	return getPersistentPointer(oss.str());
 }
 
+char* transposeScore(const char* scoreData, int stepChange) {
+	Sguidoelement score = read(scoreData);
+	if (!score) {
+		return "ERROR Could not parse score data! (No action performed)";
+	}
+	
+	guido::transposeOperation trop;
+	score = trop(score, stepChange);
+	
+	if (!score) {
+		return "ERROR Failed to transpose score";
+	}
+	
+	// Otherwise, return success!
+	ostringstream oss;
+	score->print(oss);
+	return getPersistentPointer(oss.str());
+}

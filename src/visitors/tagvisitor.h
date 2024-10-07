@@ -52,13 +52,14 @@ public:
 	
 	// Check the tag to see if it matches what we care about
 	virtual void visitStart(Sguidotag& tag) {
-		if (tag->getType() == kTClef) {
+		// std::cout << "Visit start of tag: " << tag->getName() << "\n" << std::flush;
+		if (tag->getType() == kTClef && !fClef) {
 			fClef = tag;
-		} else if (tag->getType() == kTInstr || tag->getType() == kTInstrument) {
+		} else if ((tag->getType() == kTInstr || tag->getType() == kTInstrument) && !fInstr) {
 			fInstr = tag;
-		} else if (tag->getType() == kTMeter) {
+		} else if (tag->getType() == kTMeter && !fMeter) {
 			fMeter = tag;
-		} else if (tag->getType() == kTKey) {
+		} else if (tag->getType() == kTKey && !fKeySig) {
 			fKeySig = tag;
 		}
 	}
@@ -69,7 +70,7 @@ public:
 	// is meant to grab the ones defined at the start of the voice.
 	// So, we can stop once we hit a note.
 	virtual void visitStart(SARNote& elt) {
-		fBrowser.stop();
+		//fBrowser.stop();
 	}
 	
 	

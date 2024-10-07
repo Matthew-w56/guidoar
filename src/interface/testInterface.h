@@ -85,6 +85,8 @@ gar_export char* addBlankVoice(const char* scoreData);
 gar_export char* deleteVoice(const char* scoreData, int voiceToDelete);
 gar_export char* setVoiceInitInstrument(const char* scoreData, int voice, const char* instrumentName, int instrumentCode);
 
+gar_export char* transposeScore(const char* scoreData, int stepChange);
+
 #ifdef __cplusplus
 }
 #endif
