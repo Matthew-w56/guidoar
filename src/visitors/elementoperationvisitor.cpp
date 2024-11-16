@@ -141,6 +141,21 @@ static SARNote createNote(NewNoteInfo noteInfo, int keySignature) {
 	return note;
 }
 
+static SARNote createNamedNote(NamedNewNoteInfo noteInfo, int keySignature) {
+	// Create the note itself
+	SARNote note = ARFactory().createNote(noteInfo.name);
+	// Set a few attributes of the note
+	note->SetOctave(noteInfo.octave);
+	note->SetAccidental(0);
+	note->SetDots(0);
+	
+	// Set the duration
+	*note = rational(noteInfo.durLengthNum, noteInfo.durLengthDen);
+	
+	// Return the result
+	return note;
+}
+
 // Helper to pull FULL duration
 static rational getRealDuration(Sguidoelement el) {
 	ARChord* isChord = dynamic_cast<ARChord*>((&*el));
@@ -246,6 +261,55 @@ OpResult elementoperationvisitor::insertNote(const Sguidoelement& score, NewNote
 	
 	// Create the note that we'll add
 	SARNote noteToAdd = createNote(noteInfo, fCurrentKeySignature);
+	
+	// Make sure the score is long enough for the new note
+	rational startTime = rational(noteInfo.durStartNum, noteInfo.durStartDen);
+	rational noteDuration = getRealDuration(noteToAdd);
+	if (! checkSongDuration(fResultVoice, startTime + noteDuration)) {
+		return OpResult::needsMeasureAdded;
+	}
+	
+	// Stop here if we didn't find some note to attach this one to
+	if (!fFoundNote) {
+		print("No note found; Stopping early!\n");
+		std::cout.flush();
+		return OpResult::noActionTaken;
+	}
+	
+	// Find out whether we can create/add to a chord
+	bool durationsMatch = getRealDuration(noteToAdd) == getRealDuration(fResultNote);
+	// Insert the note however is best given the durations of the new and existing note
+	if (durationsMatch) {
+		// Insert note without any need for moving other things around
+		bool existingNoteIsRest = fResultNote->isRest();
+		if (!fFoundChord && existingNoteIsRest) {
+			// Just replace the rest with the note
+			insertNoteOnRest(fResultVoice, fResultNote, noteToAdd);
+		} else if (!fFoundChord && ! existingNoteIsRest) {
+			// Create a chord around the existing note, and add the new one, too
+			insertNoteToCreateChord(fResultVoice, fResultNote, noteToAdd);
+		} else if (fFoundChord) {
+			// We are in a chord (Just add note to the chord)
+			insertNoteIntoChord(fResultChord, noteToAdd);
+		}
+	} else {
+		// Get the new element, and then make space for it in the score
+		std::vector<Sguidoelement> wrapper;
+		wrapper.push_back(noteToAdd);
+		return fFoundChord
+				? cutScoreAndInsert(fResultVoice, fResultChord, wrapper)
+				: cutScoreAndInsert(fResultVoice, fResultNote, wrapper);
+	}
+	
+	return OpResult::success;
+}
+
+OpResult elementoperationvisitor::insertNamedNote(const Sguidoelement& score, NamedNewNoteInfo noteInfo) {
+	// Start off by finding where we are working in the score
+	findResultVoiceChordNote(score, rational(noteInfo.durStartNum, noteInfo.durStartDen), noteInfo.voice, -1);
+	
+	// Create the note that we'll add
+	SARNote noteToAdd = createNamedNote(noteInfo, fCurrentKeySignature);
 	
 	// Make sure the score is long enough for the new note
 	rational startTime = rational(noteInfo.durStartNum, noteInfo.durStartDen);
@@ -719,7 +783,10 @@ OpResult elementoperationvisitor::cutScoreAndInsert(SARVoice& voice, Sguidoeleme
 		
 		// Do some flow control and setup for next loop iteration
 		if (timeToEat == zeroR) break;
-		if (it == voice->end()) return OpResult::needsMeasureAdded;
+		if (it == voice->end()) {
+			// print("Returning NeedsMeasureAdded from block 2\n");
+			return OpResult::needsMeasureAdded;
+		}
 		currentDur = getRealDuration(*it);
 	}
 	// print("Done eating elements..\n");
@@ -1062,7 +1129,11 @@ static SARChord getCopyOfChord(SARChord el) {
 static bool checkSongDuration(SARVoice voice, rational desiredLength) {
 	rational total = rational(0, 1);
 	for (auto it = voice->begin(); it != voice->end(); it++) {
-		total += getRealDuration(*it);
+		rational leng = getRealDuration(*it);
+		total += leng;
+		// Totals can quickly get un-friendly and the numerator or denominator tends
+		// to overflow quickly without this next line in place to simplify the fraction.
+		total = total.rationalise();
 		if (total >= desiredLength) {
 			return true;
 		}
@@ -1118,6 +1189,8 @@ void elementoperationvisitor::visitStart(SARVoice& elt) {
 }
 
 void elementoperationvisitor::visitStart(SARChord& elt) {
+	fCurrentChordRef = elt;
+	fInChord = true;
 	durationvisitor::visitStart(elt);
 }
 

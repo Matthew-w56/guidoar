@@ -78,6 +78,8 @@ gar_export char* shiftRangeNotePitch(const char* scoreData, int startNum, int st
 gar_export char* getSelection(const char* scoreData, int startNum, int startDen, int endNum, int endDen, int startVoice, int endVoice);
 gar_export char* pasteToDuration(const char* scoreData, const char* selectionData, int startNum, int startDen, int startVoice);
 
+gar_export char* insertNoteWithNameOct(const char* scoreData, int startNum, int startDen, int durNum, int durDen, char* noteName, int octave, int voice);
+
 // Voice Operations and Queries
 
 gar_export VoiceInfo* getVoicesInfo(const char* scoreData, int* voiceCountOut);

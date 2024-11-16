@@ -37,6 +37,7 @@ using guido::elementoperationvisitor;
 using guido::SARNote;
 using guido::ARFactory;
 using guido::NewNoteInfo;
+using guido::NamedNewNoteInfo;
 using guido::OpResult;
 using guido::tailOperation;
 using guido::headOperation;
@@ -190,6 +191,48 @@ char* insertNote(const char* scoreData, int startNum, int startDen, int durNum, 
 	// If an error happened, return info about what it was
 	if (result != OpResult::success) {
 		oss << "ERROR Could not INSERT NOTE!  Error code: " << result;
+		return getPersistentPointer(oss.str());
+	}
+	
+	// Otherwise, return the score
+	score->print(oss);
+	return getPersistentPointer(oss.str());
+}
+
+char* insertNoteWithNameOct(const char* scoreData, int startNum, int startDen, int durNum, int durDen, char* noteName, int octave, int voice) {
+	// Read the score.  If that fails, return error code as a string.
+	Sguidoelement score = read(scoreData);
+	if (!score) return "ERROR Error reading score!  (No score operation performed)";
+	
+	// Initialize the objects needed with raw parameter data
+	elementoperationvisitor visitor;
+	// Create the note that we will insert
+	NamedNewNoteInfo info;
+	info.name = noteName;
+	info.octave = octave;
+	info.durStartNum = startNum;
+	info.durStartDen = startDen;
+	info.durLengthNum = durNum;
+	info.durLengthDen = durDen;
+	info.voice = voice-1;
+	
+	// If we need to, extend the base score
+	durationvisitor dvis;
+	rational scoreDur = dvis.duration(score);
+	rational noteStartDur = rational(startNum, startDen);
+	rational insertNoteDur = rational(durNum, durDen);
+	if (scoreDur < noteStartDur + insertNoteDur) {
+		guido::extendVisitor extender;
+		score = extender.extend(score, noteStartDur + insertNoteDur);
+	}
+	
+	// Run the delete routine
+	OpResult result = visitor.insertNamedNote(score, info);
+	ostringstream oss;
+	
+	// If an error happened, return info about what it was
+	if (result != OpResult::success) {
+		oss << "ERROR Could not INSERT NAMED NOTE!  Error code: " << result;
 		return getPersistentPointer(oss.str());
 	}
 	
@@ -476,7 +519,6 @@ VoiceInfo* getVoicesInfo(const char* scoreData, int* voiceCountOut) {
 			info.initInstrName = getPersistentPointer(vInfo.instr->getAttributeValue(0));
 		}
 		outList.push_back(info);
-		PRINT("Added voice info object to list");
 	}
 	// Output the information
 	*voiceCountOut = outList.size();
@@ -515,6 +557,7 @@ char* addBlankVoice(const char* scoreData) {
 	guido::Sguidotag barFormat_tag = ARFactory().createTag("barFormat");
 	guido::Sguidoattribute bfAttr = guidoattribute::create();
 	bfAttr->setValue("system");
+	bfAttr->setQuoteVal(true);
 	tag->add(id_attr);
 	tag->add(range_attr);
 	barFormat_tag->add(bfAttr);

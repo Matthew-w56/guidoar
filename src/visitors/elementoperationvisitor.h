@@ -43,6 +43,15 @@ struct NewNoteInfo {
 		dots = 0,
 		insistedAccidental = 0;
 };
+struct NamedNewNoteInfo {
+	int octave,
+		voice,
+		durStartNum,
+		durStartDen,
+		durLengthNum,
+		durLengthDen;
+	char* name;
+};
 
 enum OpResult { none, success, needsMeasureAdded, failure, noActionTaken };
 
@@ -60,7 +69,8 @@ class gar_export elementoperationvisitor :
 		OpResult 	deleteEvent   (const Sguidoelement& score, const rational& time, unsigned int voiceIndex, int midiPitch=-1);
 		OpResult	deleteRange	  (const Sguidoelement& score, const rational& startTime, const rational& endTime, int startVoice, int endVoice);
 		OpResult	insertNote	  (const Sguidoelement& score, NewNoteInfo noteInfo);
-		OpResult  	insertRange	  (const Sguidoelement& score, SARVoice elsToAdd, rational startTime, int voice, rational insertListDur);
+		OpResult	insertNamedNote (const Sguidoelement& score, NamedNewNoteInfo noteInfo);
+		OpResult  insertRange	  (const Sguidoelement& score, SARVoice elsToAdd, rational startTime, int voice, rational insertListDur);
 		
 		// Methods that adjust existing elements
 		OpResult	setDurationAndDots(const Sguidoelement& score, const rational& time, int voice, rational newDur, int newDots);
